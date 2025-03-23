@@ -1,0 +1,688 @@
+{% extends "base.html" %} {% block title %}Coffee Roasters {% endblock %} {%
+  block content %}
+  <div class="page-header">
+    <h1>Coffee Roasters</h1>
+    <p>Discover roasters specializing in high-quality artisan coffee</p>
+  </div>
+  
+  <div class="roastery-controls">
+    <div class="search-bar">
+      <input type="text" id="roastery-search" placeholder="Search roasters..." />
+      <i class="fas fa-search"></i>
+    </div>
+  
+    {% if session.get('jwt_token') %}
+    <a href="#" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Add Roaster
+    </a>
+    {% endif %}
+  </div>
+  
+  <div class="roasteries-map">
+    <div id="map" class="map-container">
+      <div class="map-loading">
+        <i class="fas fa-spinner fa-spin"></i> Loading map...
+      </div>
+    </div>
+  </div>
+  
+  <div class="roasteries-grid" id="roasteries-container">
+    {% for roastery in roasteries %}
+    <div
+      class="roastery-card fade-in"
+      data-country="{{ roastery.country|default('Poland') }}"
+    >
+      <div class="roastery-header">
+        <div class="roastery-logo roastery-color-{{ loop.index0 % 8 }}">
+          {{ roastery.name[0] | upper }}
+        </div>
+        <div class="roastery-details">
+          <h3 class="roastery-name">{{ roastery.name }}</h3>
+          <p class="roastery-location">
+            <i class="fas fa-map-marker-alt"></i>
+            {% if roastery.city %} {{ roastery.city }} {% if roastery.country and
+            roastery.country != "Poland" %}, {{ roastery.country }}{% endif %} {%
+            else %} {% if roastery.country %}{{ roastery.country }}{% else
+            %}Poland{% endif %} {% endif %}
+          </p>
+        </div>
+      </div>
+      <div class="roastery-body">
+        <p class="roastery-description">
+          {{ roastery.description | default('This roastery does not have a
+          description yet.', true) | truncate(150) }}
+        </p>
+  
+        <div class="roastery-specialties">
+          <h4>Specialty:</h4>
+          <div class="specialty-tags">
+            {% if roastery.specialties %} {% for specialty in roastery.specialties
+            %}
+            <span class="specialty-tag">{{ specialty }}</span>
+            {% endfor %} {% else %}
+            <span class="specialty-tag">Specialty Coffee</span>
+            <span class="specialty-tag">Single Origin</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="roastery-footer">
+        <div class="roastery-stats">
+          <div class="roastery-stat">
+            <i class="fas fa-mug-hot"></i>
+            <span>{{ roastery.coffeeCount | default(0) }}</span>
+            <small>coffees</small>
+          </div>
+          <div class="roastery-stat">
+            <i class="fas fa-star"></i>
+            <span>{{ roastery.rating | default('0.0') }}</span>
+            <small>rating</small>
+          </div>
+        </div>
+        <a href="/roastery/{{ roastery.id }}" class="btn btn-outline btn-sm"
+          >More details</a
+        >
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  
+  {% if not roasteries %}
+  <div class="empty-state">
+    <div class="empty-icon">
+      <i class="fas fa-store"></i>
+    </div>
+    <h3>No roasters in database</h3>
+    <p>No coffee roasters were found in the database.</p>
+    {% if session.get('jwt_token') %}
+    <a href="#" class="btn btn-primary"> Add first roaster </a>
+    {% endif %}
+  </div>
+  {% endif %}
+  
+  <style>
+    .roastery-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-xl);
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+    }
+  
+    .roasteries-map {
+      margin-bottom: var(--spacing-xl);
+      border-radius: var(--border-radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+  
+    .map-container {
+      height: 400px;
+      z-index: 1;
+    }
+  
+    .roasteries-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: var(--spacing-lg);
+    }
+  
+    .roastery-card {
+      background-color: var(--color-card);
+      border-radius: var(--border-radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      transition: transform var(--transition-normal),
+        box-shadow var(--transition-normal);
+      display: flex;
+      flex-direction: column;
+    }
+  
+    .roastery-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-lg);
+    }
+  
+    .roastery-header {
+      padding: var(--spacing-md);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+    }
+  
+    .roastery-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: white;
+    }
+  
+    .roastery-color-0 {
+      background-color: #a6d8a8;
+    }
+    .roastery-color-1 {
+      background-color: #81c784;
+    }
+    .roastery-color-2 {
+      background-color: #66bb6a;
+    }
+    .roastery-color-3 {
+      background-color: #4caf50;
+    }
+    .roastery-color-4 {
+      background-color: #43a047;
+    }
+    .roastery-color-5 {
+      background-color: #388e3c;
+    }
+    .roastery-color-6 {
+      background-color: #2e7d32;
+    }
+    .roastery-color-7 {
+      background-color: #1b5e20;
+    }
+  
+    .roastery-details {
+      flex: 1;
+    }
+  
+    .roastery-name {
+      font-family: var(--font-heading);
+      margin-bottom: var(--spacing-xs);
+    }
+  
+    .roastery-location {
+      font-size: 0.85rem;
+      color: var(--color-text-light);
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+    }
+  
+    .roastery-body {
+      padding: var(--spacing-md);
+      flex-grow: 1;
+    }
+  
+    .roastery-description {
+      margin-bottom: var(--spacing-md);
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--color-text-light);
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+  
+    .roastery-specialties h4 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: var(--spacing-xs);
+      color: var(--color-text-light);
+    }
+  
+    .specialty-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-xs);
+    }
+  
+    .specialty-tag {
+      background-color: var(--color-background);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--border-radius-sm);
+      font-size: 0.8rem;
+    }
+  
+    .roastery-footer {
+      padding: var(--spacing-md);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  
+    .roastery-stats {
+      display: flex;
+      gap: var(--spacing-md);
+    }
+  
+    .roastery-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+  
+    .roastery-stat i {
+      color: var(--color-primary);
+      margin-bottom: var(--spacing-xs);
+    }
+  
+    .roastery-stat span {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+  
+    .roastery-stat small {
+      font-size: 0.75rem;
+      color: var(--color-text-light);
+    }
+  
+    /* Country filter button */
+    .country-filter {
+      margin-left: 10px;
+      position: relative;
+    }
+  
+    .country-filter-btn {
+      background-color: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-sm) var(--spacing-md);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+  
+    .country-filter-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background-color: var(--color-card);
+      border-radius: var(--border-radius-md);
+      box-shadow: var(--shadow-md);
+      padding: var(--spacing-sm);
+      min-width: 150px;
+      z-index: 10;
+      display: none;
+    }
+  
+    .country-filter-dropdown.show {
+      display: block;
+    }
+  
+    .country-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px;
+    }
+  
+    /* Map popup styles */
+    .roastery-popup {
+      font-family: var(--font-body);
+    }
+  
+    .roastery-popup-name {
+      font-weight: bold;
+      font-size: 1rem;
+      margin-bottom: 3px;
+    }
+  
+    .roastery-popup-location {
+      font-size: 0.9rem;
+      color: #555;
+    }
+  
+    .roastery-popup-rating {
+      color: #ffc107;
+      margin-top: 5px;
+    }
+  </style>
+  {% block extra_js %}
+  <style>
+    .map-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(255, 255, 255, 0.8);
+      padding: 10px 15px;
+      border-radius: 5px;
+      z-index: 400;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+  
+    .error-message {
+      text-align: center;
+      padding: 20px;
+      color: #f44336;
+    }
+  </style>
+  
+  <script>
+    let mapInitialized = false;
+    
+    // Opóźnione ładowanie mapy
+    document.addEventListener('DOMContentLoaded', function() {
+        // Opóźnij inicjalizację mapy aby najpierw załadować resztę strony
+        setTimeout(initMap, 300);
+    });
+  
+    function initMap() {
+        if (mapInitialized) return;
+        
+        // Dynamiczne ładowanie Leaflet
+        const leafletPromise = new Promise((resolve, reject) => {
+            if (typeof L !== 'undefined') {
+                resolve();
+                return;
+            }
+  
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+            link.crossOrigin = '';
+            document.head.appendChild(link);
+  
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+            script.crossOrigin = '';
+            script.onload = () => {
+                resolve();
+            };
+            script.onerror = () => {
+                reject(new Error('Failed to load Leaflet'));
+            };
+            document.head.appendChild(script);
+        });
+  
+        leafletPromise.then(() => {
+            mapInitialized = true;
+            const mapContainer = document.getElementById('map');
+            const loadingElement = mapContainer.querySelector('.map-loading');
+  
+            // Initialize map
+            const map = L.map('map').setView([52.2297, 21.0122], 5); // Default center on Poland
+  
+            // Add tile layer (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+  
+            // Roastery locations data
+            const roasteries = [
+                {% for roastery in roasteries %}
+                {
+                    id: {{ roastery.id }},
+                    name: "{{ roastery.name }}",
+                    lat: {{ roastery.lat|default(52.2297) }},
+                    lng: {{ roastery.lng|default(21.0122) }},
+                    location: "{% if roastery.city %}{{ roastery.city }}{% if roastery.country and roastery.country != 'Poland' %}, {{ roastery.country }}{% endif %}{% else %}{% if roastery.country %}{{ roastery.country }}{% else %}Poland{% endif %}{% endif %}",
+                    rating: {{ roastery.rating|default(0) }},
+                    country: "{{ roastery.country|default('Poland') }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+  
+            // Create a layer group for markers so we can filter them
+            const markersLayer = L.layerGroup().addTo(map);
+  
+            // Add markers for all roasteries
+            roasteries.forEach(roastery => {
+                const marker = L.marker([roastery.lat, roastery.lng]).addTo(markersLayer);
+  
+                // Fixed star rating display
+                const stars = Math.max(0, Math.min(5, Math.floor(roastery.rating || 0)));
+                const emptyStars = Math.max(0, 5 - stars);
+                
+                // Create popup content
+                const popupContent = `
+                    <div class="roastery-popup">
+                        <div class="roastery-popup-name">${roastery.name}</div>
+                        <div class="roastery-popup-location">${roastery.location}</div>
+                        <div class="roastery-popup-rating">
+                            ${'★'.repeat(stars)}${'☆'.repeat(emptyStars)}
+                            ${(roastery.rating || 0).toFixed(1)}
+                        </div>
+                    </div>
+                `;
+  
+                marker.bindPopup(popupContent);
+                marker.roasteryData = roastery; // Store roastery data with marker for filtering
+            });
+  
+            // Fit map to show all markers
+            try {
+                const bounds = markersLayer.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            } catch (e) {
+                console.log("No valid bounds found, using default view");
+            }
+  
+            // Ukryj komunikat ładowania
+            if (loadingElement) {
+                loadingElement.style.display = 'none';
+            }
+  
+            // Search functionality
+            const searchInput = document.getElementById('roastery-search');
+            const roasteryCards = document.querySelectorAll('.roastery-card');
+  
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+  
+                roasteryCards.forEach(card => {
+                    const name = card.querySelector('.roastery-name').textContent.toLowerCase();
+                    const location = card.querySelector('.roastery-location').textContent.toLowerCase();
+                    const description = card.querySelector('.roastery-description').textContent.toLowerCase();
+  
+                    if (name.includes(searchTerm) || location.includes(searchTerm) || description.includes(searchTerm)) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+  
+                // Also filter markers on the map
+                markersLayer.clearLayers();
+  
+                roasteries.filter(roastery => {
+                    const name = roastery.name.toLowerCase();
+                    const location = roastery.location.toLowerCase();
+                    return name.includes(searchTerm) || location.includes(searchTerm);
+                }).forEach(roastery => {
+                    const marker = L.marker([roastery.lat, roastery.lng]).addTo(markersLayer);
+  
+                    // Fixed star rating display
+                    const stars = Math.max(0, Math.min(5, Math.floor(roastery.rating || 0)));
+                    const emptyStars = Math.max(0, 5 - stars);
+                    
+                    const popupContent = `
+                        <div class="roastery-popup">
+                            <div class="roastery-popup-name">${roastery.name}</div>
+                            <div class="roastery-popup-location">${roastery.location}</div>
+                            <div class="roastery-popup-rating">
+                                ${'★'.repeat(stars)}${'☆'.repeat(emptyStars)}
+                                ${(roastery.rating || 0).toFixed(1)}
+                            </div>
+                        </div>
+                    `;
+  
+                    marker.bindPopup(popupContent);
+                });
+                
+                // Update map bounds after filtering
+                try {
+                    const bounds = markersLayer.getBounds();
+                    if (bounds.isValid()) {
+                        map.fitBounds(bounds, { padding: [50, 50] });
+                    }
+                } catch (e) {
+                    console.log("No valid bounds found after filtering");
+                }
+            });
+  
+            // Add country filter functionality
+            const searchBarDiv = document.querySelector('.search-bar');
+  
+            // Get unique countries from roasteries data
+            const countries = [...new Set(roasteries.map(roastery => roastery.country))].filter(Boolean);
+  
+            if (countries.length > 1) {
+                // Create country filter UI
+                const countryFilterDiv = document.createElement('div');
+                countryFilterDiv.className = 'country-filter';
+  
+                const filterBtn = document.createElement('button');
+                filterBtn.className = 'country-filter-btn';
+                filterBtn.innerHTML = '<i class="fas fa-globe"></i> Country';
+  
+                const dropdownDiv = document.createElement('div');
+                dropdownDiv.className = 'country-filter-dropdown';
+  
+                // Add checkbox for "All countries"
+                const allCountriesLabel = document.createElement('label');
+                allCountriesLabel.className = 'country-checkbox';
+  
+                const allCountriesCheckbox = document.createElement('input');
+                allCountriesCheckbox.type = 'checkbox';
+                allCountriesCheckbox.checked = true;
+                allCountriesCheckbox.dataset.country = 'all';
+  
+                allCountriesLabel.appendChild(allCountriesCheckbox);
+                allCountriesLabel.appendChild(document.createTextNode('All countries'));
+                dropdownDiv.appendChild(allCountriesLabel);
+  
+                // Add checkbox for each country
+                countries.forEach(country => {
+                    const label = document.createElement('label');
+                    label.className = 'country-checkbox';
+  
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = true;
+                    checkbox.dataset.country = country;
+  
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(country || 'Unknown'));
+  
+                    dropdownDiv.appendChild(label);
+                });
+  
+                countryFilterDiv.appendChild(filterBtn);
+                countryFilterDiv.appendChild(dropdownDiv);
+                searchBarDiv.after(countryFilterDiv);
+  
+                // Toggle dropdown
+                filterBtn.addEventListener('click', function() {
+                    dropdownDiv.classList.toggle('show');
+                });
+  
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (!countryFilterDiv.contains(event.target)) {
+                        dropdownDiv.classList.remove('show');
+                    }
+                });
+  
+                // Handle "All countries" checkbox
+                allCountriesCheckbox.addEventListener('change', function() {
+                    const checked = this.checked;
+  
+                    // Update all other checkboxes
+                    dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])').forEach(cb => {
+                        cb.checked = checked;
+                    });
+  
+                    // Apply filter
+                    applyCountryFilter();
+                });
+  
+                // Handle individual country checkboxes
+                dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        // Check if all country checkboxes are checked
+                        const allChecked = Array.from(
+                            dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])')
+                        ).every(cb => cb.checked);
+  
+                        // Update "All countries" checkbox
+                        allCountriesCheckbox.checked = allChecked;
+  
+                        // Apply filter
+                        applyCountryFilter();
+                    });
+                });
+  
+                function applyCountryFilter() {
+                    // Get selected countries
+                    const selectedCountries = Array.from(
+                        dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"]):checked')
+                    ).map(cb => cb.dataset.country);
+  
+                    // Filter roastery cards
+                    roasteryCards.forEach(card => {
+                        const country = card.dataset.country;
+                        const matchesCountry = selectedCountries.includes(country);
+  
+                        if (matchesCountry) {
+                            card.style.display = 'flex';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+  
+                    // Filter map markers
+                    markersLayer.clearLayers();
+  
+                    roasteries.filter(roastery => {
+                        return selectedCountries.includes(roastery.country);
+                    }).forEach(roastery => {
+                        const marker = L.marker([roastery.lat, roastery.lng]).addTo(markersLayer);
+  
+                        // Fixed star rating display
+                        const stars = Math.max(0, Math.min(5, Math.floor(roastery.rating || 0)));
+                        const emptyStars = Math.max(0, 5 - stars);
+                        
+                        const popupContent = `
+                            <div class="roastery-popup">
+                                <div class="roastery-popup-name">${roastery.name}</div>
+                                <div class="roastery-popup-location">${roastery.location}</div>
+                                <div class="roastery-popup-rating">
+                                    ${'★'.repeat(stars)}${'☆'.repeat(emptyStars)}
+                                    ${(roastery.rating || 0).toFixed(1)}
+                                </div>
+                            </div>
+                        `;
+  
+                        marker.bindPopup(popupContent);
+                    });
+  
+                    // Update map bounds
+                    try {
+                        const bounds = markersLayer.getBounds();
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds, { padding: [50, 50] });
+                        }
+                    } catch (e) {
+                        console.log("No valid bounds found after filtering");
+                    }
+                }
+            }
+        }).catch(error => {
+            console.error('Error loading map:', error);
+            const mapContainer = document.getElementById('map');
+            mapContainer.innerHTML = '<div class="error-message">Failed to load map</div>';
+        });
+    }
+  </script>
+  {% endblock %} {% endblock %}

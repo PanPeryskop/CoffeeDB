@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}CoffeeDB{% endblock %}</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    <div class="app-container">
+      <nav class="main-nav">
+        <div class="nav-brand">
+          <a href="{{ url_for('index') }}">
+            <i class="fas fa-coffee"></i>
+            <span>CoffeeDB</span>
+          </a>
+        </div>
+        <input type="checkbox" id="nav-toggle" class="nav-toggle" />
+        <label for="nav-toggle" class="nav-toggle-label">
+          <span></span>
+        </label>
+        <ul class="nav-links">
+          <li>
+            <a href="{{ url_for('coffees') }}" class="nav-link">
+              <i class="fas fa-mug-hot"></i> Coffees
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('roasteries') }}" class="nav-link">
+              <i class="fas fa-store"></i> Roasteries
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('shops') }}" class="nav-link">
+              <i class="fas fa-shop"></i> Coffee Shops
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('reviews') }}" class="nav-link">
+              <i class="fas fa-star"></i> Reviews
+            </a>
+          </li>
+          {% if not session.get('jwt_token') %}
+          <li class="auth-links">
+            <a href="{{ url_for('login') }}" class="btn btn-primary">
+              <i class="fas fa-sign-in-alt"></i> Log In
+            </a>
+            <a href="{{ url_for('register') }}" class="btn btn-outline">
+              Register
+            </a>
+          </li>
+          {% else %}
+          <li class="auth-links">
+            <a href="{{ url_for('logout') }}" class="btn btn-outline">
+              <i class="fas fa-sign-out-alt"></i> Log Out
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </nav>
+
+      <div class="content">
+        {% with messages = get_flashed_messages() %} {% if messages %}
+        <div class="notification-container">
+          {% for message in messages %}
+          <div class="notification notification-fade">
+            <p>{{ message }}</p>
+            <button class="close-btn">&times;</button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %} {% endwith %} {% block content %}{% endblock %}
+      </div>
+
+      <footer class="main-footer">
+        <div class="footer-content">
+          <div class="footer-brand"><i class="fas fa-coffee"></i> CoffeeDB</div>
+          <p>Would you drink this KOFOLA for 5mln zł? OHOHO 🐈</p>
+        </div>
+      </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

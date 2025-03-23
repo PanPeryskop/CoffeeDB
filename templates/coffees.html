@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Coffees - CoffeeDB{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Discover Exceptional Coffees</h1>
+    <p>Find your favorite flavor profile from our rich collection</p>
+</div>
+
+<div class="coffee-controls">
+    <div class="search-filter">
+        <div class="search-bar">
+            <input type="text" id="coffee-search" placeholder="Search for coffee...">
+            <i class="fas fa-search"></i>
+        </div>
+        <div class="filter-dropdown">
+            <button class="filter-btn">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            <div class="filter-content">
+                <div class="filter-group">
+                    <h4>Country</h4>
+                    <div class="checkbox-list" id="country-filters">
+                        <!-- Filled dynamically with JS -->
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <h4>Process</h4>
+                    <div class="checkbox-list" id="process-filters">
+                        <!-- Filled dynamically with JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if session.get('jwt_token') %}
+    <a href="{{ url_for('create_coffee') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Coffee
+    </a>
+    {% endif %}
+</div>
+
+<div class="coffee-grid" id="coffee-container">
+    {% for coffee in coffees %}
+    <div class="coffee-card fade-in" data-country="{{ coffee['country'] }}" data-process="{{ coffee['process'] }}">
+        <div class="coffee-card-header">
+            <span class="coffee-origin">{{ coffee['country'] }}</span>
+            <span class="coffee-process">{{ coffee['process'] }}</span>
+        </div>
+        <div class="coffee-card-body">
+            <h3 class="coffee-name">{{ coffee['name'] }}</h3>
+            <div class="flavor-tags">
+                {% for note in coffee['flavourNotes'][:3] %}
+                <span class="flavor-tag">{{ note }}</span>
+                {% endfor %}
+                {% if coffee['flavourNotes']|length > 3 %}
+                <span class="flavor-more">+{{ coffee['flavourNotes']|length - 3 }}</span>
+                {% endif %}
+            </div>
+            <p class="coffee-description">{{ coffee['description']|truncate(100) }}</p>
+        </div>
+        <div class="coffee-card-footer">
+            <a href="{{ url_for('get_coffee', coffee_id=coffee['id']) }}" class="btn btn-outline btn-sm">
+                More Details
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if not coffees %}
+<div class="empty-state">
+    <div class="empty-icon">
+        <i class="fas fa-mug-hot"></i>
+    </div>
+    <h3>No coffees in the database</h3>
+    <p>No coffees found in the database.</p>
+    {% if session.get('jwt_token') %}
+    <a href="{{ url_for('create_coffee') }}" class="btn btn-primary">
+        Add the first coffee
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Search functionality
+        const searchInput = document.getElementById('coffee-search');
+        const coffeeCards = document.querySelectorAll('.coffee-card');
+        
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            coffeeCards.forEach(card => {
+                const name = card.querySelector('.coffee-name').textContent.toLowerCase();
+                const country = card.dataset.country.toLowerCase();
+                const process = card.dataset.process.toLowerCase();
+                
+                if (name.includes(searchTerm) || country.includes(searchTerm) || process.includes(searchTerm)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+        
+        // Filter initialization
+        const countries = new Set();
+        const processes = new Set();
+        
+        coffeeCards.forEach(card => {
+            countries.add(card.dataset.country);
+            processes.add(card.dataset.process);
+        });
+        
+        const countryFilters = document.getElementById('country-filters');
+        const processFilters = document.getElementById('process-filters');
+        
+        countries.forEach(country => {
+            const checkbox = createFilterCheckbox(country, 'country');
+            countryFilters.appendChild(checkbox);
+        });
+        
+        processes.forEach(process => {
+            const checkbox = createFilterCheckbox(process, 'process');
+            processFilters.appendChild(checkbox);
+        });
+        
+        // Filter toggle
+        const filterBtn = document.querySelector('.filter-btn');
+        const filterContent = document.querySelector('.filter-content');
+        
+        filterBtn.addEventListener('click', function() {
+            filterContent.classList.toggle('show');
+        });
+        
+        // Close filter dropdown when clicking outside
+        window.addEventListener('click', function(event) {
+            if (!event.target.matches('.filter-btn') && !filterContent.contains(event.target)) {
+                filterContent.classList.remove('show');
+            }
+        });
+        
+        function createFilterCheckbox(value, type) {
+            const label = document.createElement('label');
+            label.className = 'checkbox-item';
+            
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.value = value;
+            input.checked = true;
+            input.dataset.filterType = type;
+            
+            input.addEventListener('change', applyFilters);
+            
+            const span = document.createElement('span');
+            span.textContent = value;
+            
+            label.appendChild(input);
+            label.appendChild(span);
+            
+            return label;
+        }
+        
+        function applyFilters() {
+            const selectedCountries = getSelectedValues('country');
+            const selectedProcesses = getSelectedValues('process');
+            
+            coffeeCards.forEach(card => {
+                const country = card.dataset.country;
+                const process = card.dataset.process;
+                
+                const matchesCountry = selectedCountries.includes(country);
+                const matchesProcess = selectedProcesses.includes(process);
+                
+                if (matchesCountry && matchesProcess) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+        
+        function getSelectedValues(type) {
+            const checkboxes = document.querySelectorAll(`input[data-filter-type="${type}"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+    });
+</script>
+{% endblock %}

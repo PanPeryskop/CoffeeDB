@@ -1,0 +1,52 @@
+{% extends "base.html" %} {% block title %}CoffeeDB - Find Your Perfect Coffee{%
+endblock %} {% block content %}
+<section class="hero">
+  <div class="hero-content">
+    <h1 class="fade-in">
+      Discover the world of <span class="accent">exceptional coffee</span>
+    </h1>
+    <p class="fade-in delay-1">
+      Find the best coffees, roasteries, and cafes in one place
+    </p>
+    <div class="hero-buttons fade-in delay-2">
+      <a href="{{ url_for('coffees') }}" class="btn btn-primary"
+        >Browse Coffees</a
+      >
+      <a href="{{ url_for('reviews') }}" class="btn btn-outline">Reviews</a>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature-card slide-in-left">
+    <div class="feature-icon">
+      <i class="fas fa-mug-hot"></i>
+    </div>
+    <h3>Discover Exceptional Coffees</h3>
+    <p>
+      Browse a rich collection of coffees from around the world, learn about
+      their flavor profiles and processing methods.
+    </p>
+  </div>
+  <div class="feature-card slide-in-bottom">
+    <div class="feature-icon">
+      <i class="fas fa-store"></i>
+    </div>
+    <h3>Find the Best Roasteries</h3>
+    <p>
+      Discover local and international roasteries that provide the highest
+      quality coffee.
+    </p>
+  </div>
+  <div class="feature-card slide-in-right">
+    <div class="feature-icon">
+      <i class="fas fa-star"></i>
+    </div>
+    <h3>Share Your Opinion</h3>
+    <p>
+      Rate your favorite coffees, roasteries, and cafes. Help others discover
+      exceptional places.
+    </p>
+  </div>
+</section>
+{% endblock %}

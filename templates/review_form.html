@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+
+{% block title %}Add Review {% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Add New Review</h1>
+    <p>Share your opinion about a coffee, roastery, or coffee shop</p>
+</div>
+
+<div class="form-container fade-in">
+    <form method="POST" class="detailed-form">
+        <div class="form-grid">
+            <div class="form-group full-width">
+                <label for="review-type">What are you reviewing? <span class="required">*</span></label>
+                <div class="review-type-selector">
+                    <div class="review-type-option">
+                        <input type="radio" id="coffee-type" name="review-type" value="coffee" checked>
+                        <label for="coffee-type">
+                            <i class="fas fa-mug-hot"></i>
+                            <span>Coffee</span>
+                        </label>
+                    </div>
+                    <div class="review-type-option">
+                        <input type="radio" id="roastery-type" name="review-type" value="roastery">
+                        <label for="roastery-type">
+                            <i class="fas fa-store"></i>
+                            <span>Roastery</span>
+                        </label>
+                    </div>
+                    <div class="review-type-option">
+                        <input type="radio" id="shop-type" name="review-type" value="shop">
+                        <label for="shop-type">
+                            <i class="fas fa-shop"></i>
+                            <span>Coffee Shop</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group full-width" id="coffee-select-group">
+                <label for="coffeeId">Select Coffee <span class="required">*</span></label>
+                <div class="custom-select">
+                    <select id="coffeeId" name="coffeeId" class="form-control">
+                        <option value="">Select a coffee...</option>
+                        <!-- Coffee options will be loaded here -->
+                    </select>
+                    <div class="select-arrow"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="loading-indicator" id="coffee-loading">Loading coffees...</div>
+            </div>
+
+            <div class="form-group full-width hidden" id="roastery-select-group">
+                <label for="roasteryId">Select Roastery <span class="required">*</span></label>
+                <div class="custom-select">
+                    <select id="roasteryId" name="roasteryId" class="form-control">
+                        <option value="">Select a roastery...</option>
+                        <!-- Roastery options will be loaded here -->
+                    </select>
+                    <div class="select-arrow"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="loading-indicator" id="roastery-loading">Loading roasteries...</div>
+            </div>
+
+            <div class="form-group full-width hidden" id="shop-select-group">
+                <label for="coffeeShopId">Select Coffee Shop <span class="required">*</span></label>
+                <div class="custom-select">
+                    <select id="coffeeShopId" name="coffeeShopId" class="form-control">
+                        <option value="">Select a coffee shop...</option>
+                        <!-- Coffee shop options will be loaded here -->
+                    </select>
+                    <div class="select-arrow"><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="loading-indicator" id="shop-loading">Loading coffee shops...</div>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="rating">Rating <span class="required">*</span></label>
+                <div class="rating-input">
+                    <div class="rating-stars">
+                        <i class="far fa-star" data-rating="1"></i>
+                        <i class="far fa-star" data-rating="2"></i>
+                        <i class="far fa-star" data-rating="3"></i>
+                        <i class="far fa-star" data-rating="4"></i>
+                        <i class="far fa-star" data-rating="5"></i>
+                    </div>
+                    <span class="rating-value">0</span>
+                    <input type="hidden" id="rating" name="rating" value="0">
+                </div>
+            </div>
+
+            <div class="form-group full-width">
+                <label for="review">Your Review <span class="required">*</span></label>
+                <textarea id="review" name="review" class="form-control" rows="6" placeholder="Share your experience..."></textarea>
+                <div class="textarea-counter">
+                    <span id="char-count">0</span>/<span id="char-max">500</span>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Submit Review</button>
+                <a href="{{ url_for('reviews') }}" class="btn btn-outline">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .review-type-selector {
+        display: flex;
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+    }
+
+    .review-type-option {
+        flex: 1;
+    }
+
+    .review-type-option input[type="radio"] {
+        display: none;
+    }
+
+    .review-type-option label {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--spacing-md);
+        background-color: var(--color-card);
+        border: 2px solid var(--color-border);
+        border-radius: var(--border-radius-md);
+        cursor: pointer;
+        transition: all var(--transition-normal);
+    }
+
+    .review-type-option label i {
+        font-size: 1.5rem;
+        margin-bottom: var(--spacing-sm);
+        color: var(--color-text-light);
+    }
+
+    .review-type-option input[type="radio"]:checked + label {
+        border-color: var(--color-primary);
+        background-color: var(--color-primary-light);
+    }
+
+    .review-type-option input[type="radio"]:checked + label i {
+        color: var(--color-primary);
+    }
+
+    .rating-input {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+    }
+
+    .rating-stars {
+        display: flex;
+        gap: var(--spacing-sm);
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    .rating-stars i {
+        color: #ffc107;
+        transition: transform var(--transition-fast);
+    }
+
+    .rating-stars i:hover {
+        transform: scale(1.2);
+    }
+
+    .rating-value {
+        font-weight: bold;
+        font-size: 1.2rem;
+        min-width: 2ch;
+    }
+
+    .textarea-counter {
+        text-align: right;
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+        margin-top: var(--spacing-xs);
+    }
+
+    .hidden {
+        display: none;
+    }
+    
+    .loading-indicator {
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+        margin-top: var(--spacing-xs);
+        font-style: italic;
+    }
+    
+    .error-message {
+        color: #e53935;
+        font-size: 0.85rem;
+        margin-top: var(--spacing-xs);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Dodajemy element script do załadowania danych z JSONP
+        function loadJSONP(url, callback) {
+            const script = document.createElement('script');
+            const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+            
+            window[callbackName] = function(data) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                callback(data);
+            };
+            
+            // Dodajemy parametr callback do URL
+            if (url.indexOf('?') === -1) {
+                url += '?callback=' + callbackName;
+            } else {
+                url += '&callback=' + callbackName;
+            }
+            
+            script.src = url;
+            document.body.appendChild(script);
+        }
+        
+        // Elements
+        const coffeeLoading = document.getElementById('coffee-loading');
+        const roasteryLoading = document.getElementById('roastery-loading');
+        const shopLoading = document.getElementById('shop-loading');
+        
+        const coffeeSelect = document.getElementById('coffeeId');
+        const roasterySelect = document.getElementById('roasteryId');
+        const shopSelect = document.getElementById('coffeeShopId');
+        
+        // Użyjmy zmienną do przechowywania danych API zamiast bezpośrednich połączeń
+        // Ta zmienna symuluje odpowiedź z serwera
+        
+        // Statyczne dane dla testowania (te same, które pokazałeś w logach)
+        const coffeeData = [{"id":1,"name":"Ethiopia Yirgacheffe","roasteryId":1,"country":"Ethiopia","region":"Yirgacheffe","farm":"Yirgacheffe Cooperative","variety":"Heirloom","process":"Natural","roastProfile":"Light","flavourNotes":["berry","milk chocolate","citrus"],"description":"Classic coffee from the Yirgacheffe region with intense fruit notes and a light profile."},{"id":2,"name":"Costa Rica Tarrazu","roasteryId":1,"country":"Costa Rica","region":"Tarrazu","farm":"Finca El Quizarra","variety":"Caturra, Catuai","process":"Washed","roastProfile":"Medium","flavourNotes":["caramel","nutty","honey"],"description":"Balanced coffee with classic caramel notes and sweetness."},{"id":3,"name":"Panama Geisha","roasteryId":6,"country":"Panama","region":"Boquete","farm":"Hacienda La Esmeralda","variety":"Geisha","process":"Washed","roastProfile":"Light","flavourNotes":["jasmine","bergamot","apricot"],"description":"Exclusive Geisha variety with delicate floral and fruity notes."},{"id":4,"name":"Brazil Fazenda Rainha","roasteryId":2,"country":"Brazil","region":"Sul de Minas","farm":"Fazenda Rainha","variety":"Yellow Bourbon","process":"Natural","roastProfile":"Medium-Dark","flavourNotes":["dark chocolate","nuts","brown sugar"],"description":"Classic Brazilian coffee with a rich, chocolatey profile."},{"id":5,"name":"Colombia El Paraiso Red Plum","roasteryId":3,"country":"Colombia","region":"Cauca","farm":"El Paraiso","variety":"Castillo","process":"Anaerobic Natural","roastProfile":"Light","flavourNotes":["plum","cherry","grape"],"description":"Experimental coffee with intense red fruit notes thanks to anaerobic fermentation."},{"id":6,"name":"Kenya Nyeri AA","roasteryId":7,"country":"Kenya","region":"Nyeri","farm":"Nyeri Cooperative","variety":"SL28, SL34","process":"Washed","roastProfile":"Light","flavourNotes":["blackcurrant","grapefruit","cane sugar"],"description":"Classic Kenyan coffee with characteristic acidity and citrus notes."},{"id":7,"name":"Rwanda Huye Mountain","roasteryId":8,"country":"Rwanda","region":"Southern Province","farm":"Huye Mountain Station","variety":"Red Bourbon","process":"Washed","roastProfile":"Light-Medium","flavourNotes":["red apple","black tea","orange"],"description":"Elegant coffee with balanced acidity and fruity sweetness."},{"id":8,"name":"Guatemala Antigua","roasteryId":5,"country":"Guatemala","region":"Antigua","farm":"Finca La Hermosa","variety":"Bourbon, Caturra","process":"Washed","roastProfile":"Medium","flavourNotes":["chocolate","apricot","caramel"],"description":"Classic Guatemalan coffee with a chocolate base and fruity sweetness."},{"id":9,"name":"Ethiopia Sidamo Guji","roasteryId":4,"country":"Ethiopia","region":"Guji","farm":"Guji Cooperative","variety":"Heirloom","process":"Natural","roastProfile":"Light","flavourNotes":["strawberry","peach","orange blossom"],"description":"Intense Ethiopian coffee with distinct strawberry and floral notes."},{"id":10,"name":"Burundi Kayanza","roasteryId":3,"country":"Burundi","region":"Kayanza","farm":"Bukeye Station","variety":"Bourbon","process":"Washed","roastProfile":"Light","flavourNotes":["red currant","bergamot","gooseberry"],"description":"Light roasted coffee with vibrant acidity and fruit clarity."},{"id":11,"name":"Honduras Marcala","roasteryId":2,"country":"Honduras","region":"Marcala","farm":"Finca El Puente","variety":"Catuai","process":"Honey","roastProfile":"Medium","flavourNotes":["honey","peach","milk chocolate"],"description":"Sweet coffee with a velvety body and honey sweetness thanks to the honey process."},{"id":12,"name":"Peru Cajamarca","roasteryId":1,"country":"Peru","region":"Cajamarca","farm":"Sol y Cafe Cooperative","variety":"Caturra, Typica","process":"Washed","roastProfile":"Medium","flavourNotes":["caramel","hazelnut","apple"],"description":"Balanced coffee with a creamy body and subtle sweetness."}];
+        
+        // Przykładowe dane dla palarni
+        const roasteryData = [
+            {"id": 1, "name": "Coffee Roasters Co.", "country": "Poland", "city": "Warsaw"},
+            {"id": 2, "name": "Mountain Bean Roastery", "country": "USA", "city": "Seattle"},
+            {"id": 3, "name": "Urban Coffee Works", "country": "Germany", "city": "Berlin"}
+        ];
+        
+        // Przykładowe dane dla kawiarni
+        const shopData = [
+            {"id": 1, "name": "Coffee Corner", "country": "Poland", "city": "Krakow"},
+            {"id": 2, "name": "Espresso Bar", "country": "Italy", "city": "Rome"},
+            {"id": 3, "name": "Brew & Bean", "country": "UK", "city": "London"}
+        ];
+        
+        // Załaduj dane kawy
+        coffeeLoading.style.display = 'none';
+        
+        if (coffeeData.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = 'No coffees available';
+            coffeeSelect.appendChild(option);
+        } else {
+            coffeeData.forEach(coffee => {
+                const option = document.createElement('option');
+                option.value = coffee.id;
+                option.textContent = coffee.name;
+                coffeeSelect.appendChild(option);
+            });
+        }
+        
+        // Załaduj dane palarni
+        roasteryLoading.style.display = 'none';
+        
+        if (roasteryData.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = 'No roasteries available';
+            roasterySelect.appendChild(option);
+        } else {
+            roasteryData.forEach(roastery => {
+                const option = document.createElement('option');
+                option.value = roastery.id;
+                option.textContent = roastery.name;
+                roasterySelect.appendChild(option);
+            });
+        }
+        
+        // Załaduj dane kawiarni
+        shopLoading.style.display = 'none';
+        
+        if (shopData.length === 0) {
+            const option = document.createElement('option');
+            option.textContent = 'No coffee shops available';
+            shopSelect.appendChild(option);
+        } else {
+            shopData.forEach(shop => {
+                const option = document.createElement('option');
+                option.value = shop.id;
+                option.textContent = shop.name;
+                shopSelect.appendChild(option);
+            });
+        }
+
+        // Reszta kodu bez zmian
+        
+        // Handle review type selection
+        const typeRadios = document.querySelectorAll('input[name="review-type"]');
+        const coffeeGroup = document.getElementById('coffee-select-group');
+        const roasteryGroup = document.getElementById('roastery-select-group');
+        const shopGroup = document.getElementById('shop-select-group');
+
+        function handleTypeChange() {
+            const selectedType = document.querySelector('input[name="review-type"]:checked').value;
+            
+            // Hide all select groups
+            coffeeGroup.classList.add('hidden');
+            roasteryGroup.classList.add('hidden');
+            shopGroup.classList.add('hidden');
+            
+            // Show the selected one
+            if (selectedType === 'coffee') {
+                coffeeGroup.classList.remove('hidden');
+            } else if (selectedType === 'roastery') {
+                roasteryGroup.classList.remove('hidden');
+            } else if (selectedType === 'shop') {
+                shopGroup.classList.remove('hidden');
+            }
+        }
+
+        typeRadios.forEach(radio => {
+            radio.addEventListener('change', handleTypeChange);
+        });
+
+        // Initialize based on default selection
+        handleTypeChange();
+
+        // Handle star rating
+        const stars = document.querySelectorAll('.rating-stars i');
+        const ratingValue = document.querySelector('.rating-value');
+        const ratingInput = document.getElementById('rating');
+
+        stars.forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = parseFloat(this.dataset.rating);
+                ratingInput.value = rating;
+                ratingValue.textContent = rating;
+                
+                // Update stars visual
+                stars.forEach(s => {
+                    const starRating = parseFloat(s.dataset.rating);
+                    if (starRating <= rating) {
+                        s.className = 'fas fa-star';
+                    } else {
+                        s.className = 'far fa-star';
+                    }
+                });
+            });
+
+            star.addEventListener('mouseover', function() {
+                const rating = parseFloat(this.dataset.rating);
+                
+                // Update stars visual on hover
+                stars.forEach(s => {
+                    const starRating = parseFloat(s.dataset.rating);
+                    if (starRating <= rating) {
+                        s.className = 'fas fa-star';
+                    } else {
+                        s.className = 'far fa-star';
+                    }
+                });
+            });
+        });
+
+        // Reset stars to actual rating when mouse leaves the rating container
+        document.querySelector('.rating-stars').addEventListener('mouseleave', function() {
+            const rating = parseFloat(ratingInput.value);
+            
+            stars.forEach(s => {
+                const starRating = parseFloat(s.dataset.rating);
+                if (starRating <= rating) {
+                    s.className = 'fas fa-star';
+                } else {
+                    s.className = 'far fa-star';
+                }
+            });
+        });
+
+        // Character counter for review textarea
+        const reviewTextarea = document.getElementById('review');
+        const charCount = document.getElementById('char-count');
+        const charMax = document.getElementById('char-max');
+        const maxLength = 500;
+
+        charMax.textContent = maxLength;
+
+        reviewTextarea.addEventListener('input', function() {
+            const currentLength = this.value.length;
+            charCount.textContent = currentLength;
+            
+            if (currentLength > maxLength) {
+                charCount.classList.add('text-danger');
+            } else {
+                charCount.classList.remove('text-danger');
+            }
+        });
+
+        // Form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const selectedType = document.querySelector('input[name="review-type"]:checked').value;
+            const rating = parseFloat(ratingInput.value);
+            const review = reviewTextarea.value.trim();
+            
+            // Validate inputs
+            if (rating === 0) {
+                alert('Please provide a rating');
+                return;
+            }
+            
+            if (review.length === 0) {
+                alert('Please write a review');
+                return;
+            }
+            
+            // Check if a selection was made
+            if (selectedType === 'coffee' && coffeeSelect.value === '') {
+                alert('Please select a coffee');
+                return;
+            } else if (selectedType === 'roastery' && roasterySelect.value === '') {
+                alert('Please select a roastery');
+                return;
+            } else if (selectedType === 'shop' && shopSelect.value === '') {
+                alert('Please select a coffee shop');
+                return;
+            }
+            
+            // Set the appropriate ID based on type and clear others
+            coffeeSelect.disabled = selectedType !== 'coffee';
+            roasterySelect.disabled = selectedType !== 'roastery';
+            shopSelect.disabled = selectedType !== 'shop';
+            
+            // Submit the form
+            this.submit();
+        });
+    });
+</script>
+{% endblock %}

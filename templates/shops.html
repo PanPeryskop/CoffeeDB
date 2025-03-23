@@ -1,0 +1,664 @@
+{% extends "base.html" %} {% block title %}Coffee Shops {% endblock %} {% block
+content %}
+<div class="page-header">
+  <h1>Coffee Shops</h1>
+  <p>Discover the best places that serve excellent coffee</p>
+</div>
+
+<div class="shops-controls">
+  <div class="search-bar">
+    <input type="text" id="shop-search" placeholder="Search coffee shops..." />
+    <i class="fas fa-search"></i>
+  </div>
+
+  {% if session.get('jwt_token') %}
+  <a href="#" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Add Coffee Shop
+  </a>
+  {% endif %}
+</div>
+
+<div class="shops-map">
+  <div id="map" class="map-container">
+    <div class="map-loading">
+      <i class="fas fa-spinner fa-spin"></i> Loading map...
+    </div>
+  </div>
+</div>
+
+<div class="shops-list" id="shops-container">
+  {% for shop in shops %}
+  <div
+    class="shop-card fade-in"
+    data-country="{{ shop.country|default('Poland') }}"
+  >
+    <div class="shop-image">
+      <div
+        class="shop-placeholder"
+        data-colors="#ef9a9a,#f48fb1,#ce93d8,#b39ddb,#9fa8da,#81d4fa,#80deea,#a5d6a7"
+      >
+        <i class="fas fa-mug-saucer"></i>
+      </div>
+    </div>
+    <div class="shop-content">
+      <h3 class="shop-name">{{ shop.name }}</h3>
+      <p class="shop-address">
+        <i class="fas fa-location-dot"></i>
+        {% if shop.city %}{{ shop.city }}{% if shop.country %}, {{ shop.country
+        }}{% endif %}: {% endif %} {{ shop.address | default('Address
+        unavailable', true) }}
+      </p>
+      <p class="shop-description">
+        {{ shop.description | default('This coffee shop does not have a
+        description yet.', true) | truncate(100) }}
+      </p>
+
+      <div class="shop-features">
+        {% if shop.features %} {% for feature in shop.features %}
+        <span class="shop-feature">{{ feature }}</span>
+        {% endfor %} {% else %}
+        <span class="shop-feature">Specialty Coffee</span>
+        <span class="shop-feature">Free Wi-Fi</span>
+        {% endif %}
+      </div>
+
+      <div class="shop-footer">
+        <div class="shop-rating">
+          {% set rating = shop.avgRating | default(0) | float %} {% for i in
+          range(5) %} {% if i < rating | int %}
+          <i class="fas fa-star"></i>
+          {% elif i < rating %}
+          <i class="fas fa-star-half-alt"></i>
+          {% else %}
+          <i class="far fa-star"></i>
+          {% endif %} {% endfor %}
+          <span>{{ rating | default(0) | round(1) }}</span>
+        </div>
+        <a
+          href="{{ url_for('get_shop', shop_id=shop.id) }}"
+          class="btn btn-outline btn-sm"
+          >More details</a
+        >
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if not shops %}
+<div class="empty-state">
+  <div class="empty-icon">
+    <i class="fas fa-mug-saucer"></i>
+  </div>
+  <h3>No coffee shops in database</h3>
+  <p>No coffee shops were found in the database.</p>
+  {% if session.get('jwt_token') %}
+  <a href="#" class="btn btn-primary"> Add first coffee shop </a>
+  {% endif %}
+</div>
+{% endif %}
+
+<style>
+  .shops-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+  }
+
+  .shops-map {
+    margin-bottom: var(--spacing-xl);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    position: relative;
+  }
+
+  .map-container {
+    height: 400px;
+    z-index: 1;
+  }
+
+  .map-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px 15px;
+    border-radius: 5px;
+    z-index: 400;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .error-message {
+    text-align: center;
+    padding: 20px;
+    color: #f44336;
+  }
+
+  .shops-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  @media (min-width: 768px) {
+    .shops-list {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .shop-card {
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--transition-normal),
+      box-shadow var(--transition-normal);
+  }
+
+  @media (min-width: 576px) {
+    .shop-card {
+      flex-direction: row;
+    }
+  }
+
+  .shop-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shop-image {
+    width: 100%;
+    height: 150px;
+  }
+
+  @media (min-width: 576px) {
+    .shop-image {
+      width: 150px;
+      height: auto;
+    }
+  }
+
+  .shop-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+  }
+
+  .shop-content {
+    padding: var(--spacing-md);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .shop-name {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .shop-address {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .shop-description {
+    margin-bottom: var(--spacing-md);
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2; /* Standard property for compatibility */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .shop-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .shop-feature {
+    font-size: 0.8rem;
+    background-color: var(--color-background);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+  }
+
+  .shop-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+  }
+
+  .shop-rating {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .shop-rating i {
+    color: #ffc107;
+  }
+
+  .shop-rating span {
+    font-weight: bold;
+  }
+
+  /* Map popup styles */
+  .shop-popup {
+    font-family: var(--font-body);
+  }
+
+  .shop-popup-name {
+    font-weight: bold;
+    font-size: 1rem;
+    margin-bottom: 3px;
+  }
+
+  .shop-popup-address {
+    font-size: 0.9rem;
+    color: #555;
+  }
+
+  .shop-popup-rating {
+    color: #ffc107;
+    margin-top: 5px;
+  }
+
+  /* Country filter button */
+  .country-filter {
+    margin-left: 10px;
+    position: relative;
+  }
+
+  .country-filter-btn {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+  }
+
+  .country-filter-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-sm);
+    min-width: 150px;
+    z-index: 10;
+    display: none;
+  }
+
+  .country-filter-dropdown.show {
+    display: block;
+  }
+
+  .country-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px;
+  }
+</style>
+
+// Replace your entire script section with this fixed version {% block extra_js
+%}
+<script>
+  let mapInitialized = false;
+
+  // Delayed map loading
+  document.addEventListener('DOMContentLoaded', function() {
+      // Delay initialization to load the rest of the page first
+      setTimeout(initMap, 300);
+  });
+
+  function initMap() {
+      if (mapInitialized) return;
+
+      // Dynamically load Leaflet library
+      const leafletPromise = new Promise((resolve, reject) => {
+          if (typeof L !== 'undefined') {
+              resolve();
+              return;
+          }
+
+          // Add Leaflet CSS
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+          link.crossOrigin = '';
+          document.head.appendChild(link);
+
+          // Add Leaflet JavaScript
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+          script.crossOrigin = '';
+
+          script.onload = () => {
+              resolve();
+          };
+
+          script.onerror = () => {
+              reject(new Error('Failed to load Leaflet library'));
+          };
+
+          document.head.appendChild(script);
+      });
+
+      leafletPromise.then(() => {
+          mapInitialized = true;
+          const mapContainer = document.getElementById('map');
+          const loadingElement = mapContainer.querySelector('.map-loading');
+
+          // Initialize map with default center on Poland
+          const map = L.map('map').setView([52.2297, 21.0122], 5);
+
+          // Add OpenStreetMap tile layer
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          }).addTo(map);
+
+          // Coffee shops location data from template
+          const shops = [
+              {% for shop in shops %}
+              {
+                  id: {{ shop.id|default('null') }},
+                  name: "{{ shop.name }}",
+                  lat: {{ shop.lat|default(52.2297) }},
+                  lng: {{ shop.lng|default(21.0122) }},
+                  address: "{% if shop.city %}{{ shop.city }}{% if shop.country %}, {{ shop.country }}{% endif %}: {% endif %}{{ shop.address | default('Address unavailable', true) }}",
+                  rating: {{ shop.avgRating|default(0) }},
+                  country: "{{ shop.country|default('Poland') }}"
+              }{% if not loop.last %},{% endif %}
+              {% endfor %}
+          ];
+
+          // Create a layer group for markers so we can filter them
+          const markersLayer = L.layerGroup().addTo(map);
+
+          // Add markers for all shops
+          shops.forEach(shop => {
+              const marker = L.marker([shop.lat, shop.lng]).addTo(markersLayer);
+
+              // Create popup content - Fix for negative repeat count
+              const stars = Math.max(0, Math.min(5, Math.floor(shop.rating || 0)));
+              const emptyStars = Math.max(0, 5 - stars);
+
+              const popupContent = `
+                  <div class="shop-popup">
+                      <div class="shop-popup-name">${shop.name}</div>
+                      <div class="shop-popup-address">${shop.address}</div>
+                      <div class="shop-popup-rating">
+                          ${'★'.repeat(stars)}${'☆'.repeat(emptyStars)}
+                          ${(shop.rating || 0).toFixed(1)}
+                      </div>
+                  </div>
+              `;
+
+              marker.bindPopup(popupContent);
+              marker.shopData = shop; // Store shop data with marker for filtering
+          });
+
+          // Fit map to show all markers
+          try {
+              const bounds = markersLayer.getBounds();
+              if (bounds.isValid()) {
+                  map.fitBounds(bounds, { padding: [50, 50] });
+              }
+          } catch (e) {
+              console.log("No valid bounds found, using default view");
+          }
+
+          // Hide loading indicator
+          if (loadingElement) {
+              loadingElement.style.display = 'none';
+          }
+
+          // Apply random background colors to shop placeholders
+          document.querySelectorAll('.shop-placeholder').forEach(placeholder => {
+              const colors = placeholder.dataset.colors.split(',');
+              const randomColor = colors[Math.floor(Math.random() * colors.length)];
+              placeholder.style.backgroundColor = randomColor;
+          });
+
+          // Search functionality
+          const searchInput = document.getElementById('shop-search');
+          const shopCards = document.querySelectorAll('.shop-card');
+
+          searchInput.addEventListener('input', function() {
+              const searchTerm = this.value.toLowerCase();
+
+              shopCards.forEach(card => {
+                  const name = card.querySelector('.shop-name').textContent.toLowerCase();
+                  const address = card.querySelector('.shop-address').textContent.toLowerCase();
+                  const description = card.querySelector('.shop-description').textContent.toLowerCase();
+
+                  if (name.includes(searchTerm) || address.includes(searchTerm) || description.includes(searchTerm)) {
+                      card.style.display = 'flex';
+                  } else {
+                      card.style.display = 'none';
+                  }
+              });
+
+              // Also filter markers on the map
+              markersLayer.clearLayers();
+
+              shops.filter(shop => {
+                  const name = shop.name.toLowerCase();
+                  const address = shop.address.toLowerCase();
+                  return name.includes(searchTerm) || address.includes(searchTerm);
+              }).forEach(shop => {
+                  const marker = L.marker([shop.lat, shop.lng]).addTo(markersLayer);
+
+                  // Fixed star rating display
+                  const stars = Math.max(0, Math.min(5, Math.floor(shop.rating || 0)));
+                  const emptyStars = Math.max(0, 5 - stars);
+
+                  const popupContent = `
+                      <div class="shop-popup">
+                          <div class="shop-popup-name">${shop.name}</div>
+                          <div class="shop-popup-address">${shop.address}</div>
+                          <div class="shop-popup-rating">
+                              ${'★'.repeat(stars)}${'☆'.repeat(emptyStars)}
+                              ${(shop.rating || 0).toFixed(1)}
+                          </div>
+                      </div>
+                  `;
+
+                  marker.bindPopup(popupContent);
+              });
+
+              // Update map bounds after filtering
+              try {
+                  const bounds = markersLayer.getBounds();
+                  if (bounds.isValid()) {
+                      map.fitBounds(bounds, { padding: [50, 50] });
+                  }
+              } catch (e) {
+                  console.log("No valid bounds found after filtering");
+              }
+          });
+
+          // Add country filter functionality if multiple countries exist
+          const searchBarDiv = document.querySelector('.search-bar');
+          const countries = [...new Set(shops.map(shop => shop.country))].filter(Boolean);
+
+          if (countries.length > 1) {
+              // Create country filter UI
+              const countryFilterDiv = document.createElement('div');
+              countryFilterDiv.className = 'country-filter';
+
+              const filterBtn = document.createElement('button');
+              filterBtn.className = 'country-filter-btn';
+              filterBtn.innerHTML = '<i class="fas fa-globe"></i> Country';
+
+              const dropdownDiv = document.createElement('div');
+              dropdownDiv.className = 'country-filter-dropdown';
+
+              // Add checkbox for "All countries"
+              const allCountriesLabel = document.createElement('label');
+              allCountriesLabel.className = 'country-checkbox';
+
+              const allCountriesCheckbox = document.createElement('input');
+              allCountriesCheckbox.type = 'checkbox';
+              allCountriesCheckbox.checked = true;
+              allCountriesCheckbox.dataset.country = 'all';
+
+              allCountriesLabel.appendChild(allCountriesCheckbox);
+              allCountriesLabel.appendChild(document.createTextNode('All countries'));
+              dropdownDiv.appendChild(allCountriesLabel);
+
+              // Add checkbox for each country
+              countries.forEach(country => {
+                  const label = document.createElement('label');
+                  label.className = 'country-checkbox';
+
+                  const checkbox = document.createElement('input');
+                  checkbox.type = 'checkbox';
+                  checkbox.checked = true;
+                  checkbox.dataset.country = country;
+
+                  label.appendChild(checkbox);
+                  label.appendChild(document.createTextNode(country || 'Unknown'));
+
+                  dropdownDiv.appendChild(label);
+              });
+
+              countryFilterDiv.appendChild(filterBtn);
+              countryFilterDiv.appendChild(dropdownDiv);
+              searchBarDiv.after(countryFilterDiv);
+
+              // Toggle dropdown
+              filterBtn.addEventListener('click', function() {
+                  dropdownDiv.classList.toggle('show');
+              });
+
+              // Close dropdown when clicking outside
+              document.addEventListener('click', function(event) {
+                  if (!countryFilterDiv.contains(event.target)) {
+                      dropdownDiv.classList.remove('show');
+                  }
+              });
+
+              // Handle "All countries" checkbox
+              allCountriesCheckbox.addEventListener('change', function() {
+                  const checked = this.checked;
+
+                  // Update all other checkboxes
+                  dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])').forEach(cb => {
+                      cb.checked = checked;
+                  });
+
+                  // Apply filter
+                  applyCountryFilter();
+              });
+
+              // Handle individual country checkboxes
+              dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])').forEach(checkbox => {
+                  checkbox.addEventListener('change', function() {
+                      // Check if all country checkboxes are checked
+                      const allChecked = Array.from(
+                          dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])')
+                      ).every(cb => cb.checked);
+
+                      // Update "All countries" checkbox
+                      allCountriesCheckbox.checked = allChecked;
+
+                      // Apply filter
+                      applyCountryFilter();
+                  });
+              });
+
+              function applyCountryFilter() {
+                  // Get selected countries
+                  const selectedCountries = Array.from(
+                      dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"]):checked')
+                  ).map(cb => cb.dataset.country);
+
+                  // Filter shop cards
+                  shopCards.forEach(card => {
+                      const country = card.dataset.country;
+                      const matchesCountry = selectedCountries.includes(country);
+
+                      if (matchesCountry) {
+                          card.style.display = 'flex';
+                      } else {
+                          card.style.display = 'none';
+                      }
+                  });
+
+                  // Filter map markers
+                  markersLayer.clearLayers();
+
+                  shops.filter(shop => {
+                      return selectedCountries.includes(shop.country);
+                  }).forEach(shop => {
+                      const marker = L.marker([shop.lat, shop.lng]).addTo(markersLayer);
+
+                      // Fixed star rating display
+                      const stars = Math.max(0, Math.min(5, Math.floor(shop.rating || 0)));
+                      const emptyStars = Math.max(0, 5 - stars);
+
+                      const popupContent = `
+                          <div class="shop-popup">
+                              <div class="shop-popup-name">${shop.name}</div>
+                              <div class="shop-popup-address">${shop.address}</div>
+                              <div class="shop-popup-rating">
+                              ${'★'.repeat(stars)}${'☆'.repeat(emptyStars)}
+                              ${(shop.rating || 0).toFixed(1)}
+                          </div>
+                          </div>
+                      `;
+
+                      marker.bindPopup(popupContent);
+                  });
+
+                  // Update map bounds
+                  try {
+                      const bounds = markersLayer.getBounds();
+                      if (bounds.isValid()) {
+                          map.fitBounds(bounds, { padding: [50, 50] });
+                      }
+                  } catch (e) {
+                      console.log("No valid bounds found after filtering");
+                  }
+              }
+          }
+      }).catch(error => {
+          console.error('Error loading map:', error);
+          const mapContainer = document.getElementById('map');
+          mapContainer.innerHTML = '<div class="error-message">Failed to load map</div>';
+      });
+  }
+</script>
+{% endblock %} {% endblock %}

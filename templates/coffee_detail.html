@@ -1,0 +1,450 @@
+{% extends "base.html" %} {% block title %}{{ coffee.name }} - CoffeeDB{%
+endblock %} {% block content %}
+<div class="back-link">
+  <a href="{{ url_for('coffees') }}"
+    ><i class="fas fa-arrow-left"></i> Back to Coffee List</a
+  >
+</div>
+
+<div class="coffee-detail-container">
+  <div class="coffee-detail-header fade-in">
+    <div class="coffee-detail-badges">
+      <span class="badge">{{ coffee.country }}</span>
+      <span class="badge">{{ coffee.process }}</span>
+      <span class="badge">{{ coffee.roastProfile }}</span>
+    </div>
+    <h1>{{ coffee.name }}</h1>
+    <div class="coffee-detail-meta">
+      {% if coffee.roasteryName %}
+      <span class="coffee-roastery">
+        <i class="fas fa-store"></i>
+        <a
+          href="{{ url_for('get_roastery', roastery_id=coffee.roasteryId) }}"
+          class="roastery-link"
+        >
+          {{ coffee.roasteryName }}
+        </a>
+      </span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="coffee-detail-content">
+    <div class="coffee-detail-main fade-in delay-1">
+      <div class="coffee-detail-section">
+        <h2>Description</h2>
+        <p>{{ coffee.description }}</p>
+      </div>
+
+      <div class="coffee-detail-section">
+        <h2>Flavor Profile</h2>
+        <div class="flavor-notes">
+          {% for note in coffee.flavourNotes %}
+          <span class="flavor-note">
+            <span class="flavor-dot flavor-color-{{ loop.index0 % 10 }}"></span>
+            {{ note }}
+          </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="coffee-detail-specs">
+        <div class="spec-item">
+          <div class="spec-icon"><i class="fas fa-globe-americas"></i></div>
+          <div class="spec-content">
+            <h3>Country of Origin</h3>
+            <p>{{ coffee.country }}</p>
+          </div>
+        </div>
+
+        <div class="spec-item">
+          <div class="spec-icon"><i class="fas fa-filter"></i></div>
+          <div class="spec-content">
+            <h3>Process</h3>
+            <p>{{ coffee.process }}</p>
+          </div>
+        </div>
+
+        <div class="spec-item">
+          <div class="spec-icon"><i class="fas fa-fire"></i></div>
+          <div class="spec-content">
+            <h3>Roast Profile</h3>
+            <p>{{ coffee.roastProfile }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coffee-detail-sidebar fade-in delay-2">
+      <div class="sidebar-card brew-suggestions">
+        <h3><i class="fas fa-coffee"></i> Suggested Brewing Methods</h3>
+        <ul class="brew-methods">
+          {% if coffee.roastProfile == 'light' %}
+          <li>
+            <span class="brew-method">Pour Over</span> - Highlights acidity and
+            delicate fruit notes
+          </li>
+          <li>
+            <span class="brew-method">V60</span> - Excellent for bringing out
+            bright, citrus and floral accents
+          </li>
+          <li>
+            <span class="brew-method">Chemex</span> - Clean, clear taste with
+            pronounced acidity
+          </li>
+          <li>
+            <span class="brew-method">AeroPress</span> - Short extraction
+            preserves delicate aromatics
+          </li>
+          {% elif coffee.roastProfile == 'medium' %}
+          <li>
+            <span class="brew-method">V60</span> - Balanced flavor with full
+            body
+          </li>
+          <li>
+            <span class="brew-method">French Press</span> - Emphasizes sweetness
+            and body
+          </li>
+          <li>
+            <span class="brew-method">Kalita Wave</span> - Even extraction for a
+            balanced profile
+          </li>
+          <li>
+            <span class="brew-method">Drip Coffee</span> - Versatile method
+            perfect for medium roasts
+          </li>
+          {% elif coffee.roastProfile == 'medium-dark' or coffee.roastProfile ==
+          'medium dark' %}
+          <li>
+            <span class="brew-method">French Press</span> - Emphasizes chocolate
+            and nutty notes
+          </li>
+          <li>
+            <span class="brew-method">Moka Pot</span> - Rich flavor with caramel
+            undertones
+          </li>
+          <li>
+            <span class="brew-method">AeroPress</span> - Pressure method that
+            enhances depth of flavor
+          </li>
+          <li>
+            <span class="brew-method">Espresso</span> - Good entry point for
+            espresso beginners
+          </li>
+          {% else %}
+          <li>
+            <span class="brew-method">Espresso</span> - Intense flavor, perfect
+            for milk-based drinks
+          </li>
+          <li>
+            <span class="brew-method">Moka Pot</span> - Extracts deep,
+            chocolatey notes
+          </li>
+          <li>
+            <span class="brew-method">French Press</span> - Highlights sweetness
+            and rich, full body
+          </li>
+          <li>
+            <span class="brew-method">Turkish Coffee</span> - Strong, intense
+            flavor profile
+          </li>
+          {% endif %} {% if coffee.process == 'natural' or coffee.process ==
+          'honey' %}
+          <li>
+            <span class="brew-method">Cold Brew</span> - Ideal for naturally
+            processed coffees, enhances sweetness and fruit notes
+          </li>
+          {% else %}
+          <li>
+            <span class="brew-method">Cold Brew</span> - Regardless of profile,
+            brings out sweetness and minimizes acidity
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <div class="sidebar-card action-card">
+        <div class="action-buttons">
+          {% if session.get('jwt_token') %}
+          <a
+            href="{{ url_for('create_review') }}?coffeeId={{ coffee.id }}"
+            class="btn btn-primary btn-block"
+          >
+            <i class="fas fa-star"></i> Add Review
+          </a>
+          {% else %}
+          <p class="auth-prompt">Log in to add a review.</p>
+          <a href="{{ url_for('login') }}" class="btn btn-outline btn-block">
+            <i class="fas fa-sign-in-alt"></i> Log In
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Coffee Detail Specific Styles */
+  .back-link {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .back-link a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-weight: 500;
+  }
+
+  .coffee-detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .coffee-detail-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .coffee-detail-badges {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    background-color: var(--color-primary-light);
+    color: white;
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .coffee-detail-header h1 {
+    font-family: var(--font-heading);
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .coffee-detail-meta {
+    color: var(--color-text-light);
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
+  }
+
+  .coffee-roastery {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .coffee-detail-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+  }
+
+  .coffee-detail-section {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .coffee-detail-section h2 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-md);
+    position: relative;
+    padding-bottom: var(--spacing-sm);
+  }
+
+  .coffee-detail-section h2::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background-color: var(--color-primary);
+  }
+
+  .flavor-notes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+  }
+
+  .flavor-note {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    font-size: 0.9rem;
+  }
+
+  .flavor-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .flavor-color-0 {
+    background-color: #ff9f80;
+  }
+  .flavor-color-1 {
+    background-color: #ffcc80;
+  }
+  .flavor-color-2 {
+    background-color: #ffe082;
+  }
+  .flavor-color-3 {
+    background-color: #c5e1a5;
+  }
+  .flavor-color-4 {
+    background-color: #80cbc4;
+  }
+  .flavor-color-5 {
+    background-color: #80deea;
+  }
+  .flavor-color-6 {
+    background-color: #b39ddb;
+  }
+  .flavor-color-7 {
+    background-color: #ce93d8;
+  }
+  .flavor-color-8 {
+    background-color: #ef9a9a;
+  }
+  .flavor-color-9 {
+    background-color: #bcaaa4;
+  }
+
+  .coffee-detail-specs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xl);
+  }
+
+  .spec-item {
+    display: flex;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .spec-item:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .spec-icon {
+    font-size: 1.8rem;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+  }
+
+  .spec-content h3 {
+    font-size: 1rem;
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-text-light);
+  }
+
+  .spec-content p {
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  .coffee-detail-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+  }
+
+  .sidebar-card {
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+  }
+
+  .sidebar-card h3 {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .brew-methods {
+    list-style: none;
+  }
+
+  .brew-methods li {
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .brew-methods li:last-child {
+    border-bottom: none;
+  }
+
+  .brew-method {
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .action-card {
+    text-align: center;
+  }
+
+  .auth-prompt {
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text-light);
+  }
+
+  @media (min-width: 768px) {
+    .coffee-detail-content {
+      grid-template-columns: 2fr 1fr;
+      align-items: start;
+    }
+
+    .coffee-detail-header h1 {
+      font-size: 3rem;
+    }
+
+    .coffee-detail-sidebar {
+      position: sticky;
+      top: 100px;
+    }
+  }
+
+  .coffee-roastery a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .coffee-roastery a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+</style>
+{% endblock %}

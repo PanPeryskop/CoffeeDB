@@ -1,0 +1,1235 @@
+{% extends "base.html" %} {% block title %}Reviews {% endblock %} {% block
+    content %}
+    <div class="page-header">
+      <h1>Reviews and Ratings</h1>
+      <p>Discover opinions from coffee lovers and add your own reviews</p>
+    </div>
+    
+    <div class="reviews-controls">
+      <div class="search-filter">
+        <div class="search-bar">
+          <input type="text" id="review-search" placeholder="Search reviews..." />
+          <i class="fas fa-search"></i>
+        </div>
+        <div class="filter-dropdown">
+          <button class="filter-btn"><i class="fas fa-filter"></i> Filter</button>
+          <div class="filter-content">
+            <div class="filter-group">
+              <h4>Rating</h4>
+              <div class="rating-filter">
+                <input
+                  type="range"
+                  id="min-rating"
+                  min="1"
+                  max="5"
+                  step="0.5"
+                  value="1"
+                />
+                <div class="rating-values">
+                  <span id="min-rating-value">1.0</span>
+                  <span>to</span>
+                  <span>5.0</span>
+                </div>
+              </div>
+            </div>
+            <div class="filter-group">
+              <h4>Type</h4>
+              <div class="checkbox-list">
+                <label class="checkbox-item">
+                  <input
+                    type="checkbox"
+                    value="coffee"
+                    checked
+                    data-filter-type="type"
+                  />
+                  <span>Coffee</span>
+                </label>
+                <label class="checkbox-item">
+                  <input
+                    type="checkbox"
+                    value="roastery"
+                    checked
+                    data-filter-type="type"
+                  />
+                  <span>Roastery</span>
+                </label>
+                <label class="checkbox-item">
+                  <input
+                    type="checkbox"
+                    value="shop"
+                    checked
+                    data-filter-type="type"
+                  />
+                  <span>Coffee Shop</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    
+      {% if session.get('jwt_token') %}
+      <a href="{{ url_for('create_review') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Review
+      </a>
+      {% endif %}
+    </div>
+    
+    <div id="loading-indicator" class="loading-state">
+      <div class="spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+      </div>
+      <p>Loading reviews data...</p>
+    </div>
+    
+    <div class="reviews-container" id="reviews-list">
+      {% for review in reviews %}
+      <div
+        class="review-card fade-in"
+        data-rating="{{ review.rating }}"
+        data-type="{{ 'coffee' if review.coffeeId else 'roastery' if review.roasteryId else 'shop' if review.coffeeShopId else 'other' }}"
+      >
+        <div class="review-header">
+          <div class="review-avatar">
+            <span
+              >{{ review.username[0] | upper if review.username else 'U' }}</span
+            >
+          </div>
+          <div class="review-meta">
+            <div class="review-user">
+              {{ review.username if review.username else 'Anonymous' }}
+            </div>
+            <div class="review-date">
+              {{ review.dateOfCreation.split('T')[0] if review.dateOfCreation else
+              '2023-10-15' }}
+            </div>
+          </div>
+          <div class="review-rating">
+            {% for i in range(5) %} {% if i < review.rating | int %}
+            <i class="fas fa-star"></i>
+            {% elif i < review.rating %}
+            <i class="fas fa-star-half-alt"></i>
+            {% else %}
+            <i class="far fa-star"></i>
+            {% endif %} {% endfor %}
+            <span>{{ review.rating }}</span>
+          </div>
+        </div>
+    
+        <div class="review-subject">
+          {% if review.coffeeId %}
+          <i class="fas fa-mug-hot"></i>
+          <a
+            href="{{ url_for('get_coffee', coffee_id=review.coffeeId) }}"
+            class="coffee-link"
+            data-id="{{ review.coffeeId }}"
+          >
+            {% if review.coffeeName %} {{ review.coffeeName }} {% else %}
+            <span class="entity-name loading">Loading coffee name...</span>
+            {% endif %}
+          </a>
+          {% elif review.roasteryId %}
+          <i class="fas fa-store"></i>
+          <a
+            href="{{ url_for('get_roastery', roastery_id=review.roasteryId) }}"
+            class="roastery-link"
+            data-id="{{ review.roasteryId }}"
+          >
+            {% if review.roasteryName %} {{ review.roasteryName }} {% else %}
+            <span class="entity-name loading">Loading roastery name...</span>
+            {% endif %}
+          </a>
+          {% elif review.coffeeShopId %}
+          <i class="fas fa-mug-saucer"></i>
+          <a
+            href="{{ url_for('get_shop', shop_id=review.coffeeShopId) }}"
+            class="shop-link"
+            data-id="{{ review.coffeeShopId }}"
+          >
+            {% if review.shopName %} {{ review.shopName }} {% else %}
+            <span class="entity-name loading">Loading shop name...</span>
+            {% endif %}
+          </a>
+          {% endif %}
+        </div>
+    
+        <div class="review-content">
+          <p>{{ review.review }}</p>
+        </div>
+    
+        <div class="review-actions">
+          <button
+            class="btn-like btn-action"
+            title="Like review"
+            data-review-id="{{ review.id }}"
+          >
+            <i class="far fa-thumbs-up"></i>
+            <span>{{ review.likes | default(0) }}</span>
+          </button>
+          <button
+            class="btn-comment btn-action"
+            title="Add comment"
+            data-review-id="{{ review.id }}"
+          >
+            <i class="far fa-comment"></i>
+            <span>{{ review.comments | default(0) }}</span>
+          </button>
+          {% if session.get('jwt_token') and review.userId == session.get('user_id')
+          %}
+          <div class="review-owner-actions">
+            <a
+              href="{{ url_for('edit_review', review_id=review.id) }}"
+              class="btn-edit btn-action"
+              title="Edit review"
+            >
+              <i class="far fa-edit"></i>
+            </a>
+            <button
+              class="btn-delete btn-action"
+              title="Delete review"
+              data-review-id="{{ review.id }}"
+            >
+              <i class="far fa-trash-alt"></i>
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    
+    {% if not reviews %}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <i class="fas fa-star"></i>
+      </div>
+      <h3>No reviews in the database</h3>
+      <p>No reviews were found in the database.</p>
+      {% if session.get('jwt_token') %}
+      <a href="{{ url_for('create_review') }}" class="btn btn-primary">
+        Add first review
+      </a>
+      {% endif %}
+    </div>
+    {% endif %}
+    
+    <style>
+      .reviews-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-xl);
+        flex-wrap: wrap;
+        gap: var(--spacing-md);
+      }
+    
+      .rating-filter {
+        padding: var(--spacing-sm) 0;
+      }
+    
+      .rating-values {
+        display: flex;
+        justify-content: space-between;
+        margin-top: var(--spacing-xs);
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+      }
+    
+      .reviews-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-lg);
+      }
+    
+      .review-card {
+        background-color: var(--color-card);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
+        padding: var(--spacing-lg);
+        transition: transform var(--transition-normal),
+          box-shadow var(--transition-normal);
+      }
+    
+      .review-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+      }
+    
+      .review-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: var(--spacing-md);
+      }
+    
+      .review-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--color-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: var(--spacing-md);
+      }
+    
+      .review-meta {
+        flex-grow: 1;
+      }
+    
+      .review-user {
+        font-weight: 600;
+      }
+    
+      .review-date {
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+      }
+    
+      .review-rating {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+      }
+    
+      .review-rating i {
+        color: #ffc107;
+      }
+    
+      .review-rating span {
+        font-weight: bold;
+        margin-left: var(--spacing-xs);
+      }
+    
+      .review-subject {
+        font-weight: 600;
+        margin-bottom: var(--spacing-md);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+    
+      .review-subject i {
+        color: var(--color-primary);
+      }
+    
+      .review-subject a {
+        color: var(--color-primary);
+        text-decoration: none;
+      }
+    
+      .review-subject a:hover {
+        text-decoration: underline;
+      }
+    
+      .review-content {
+        margin-bottom: var(--spacing-lg);
+      }
+    
+      .review-content p {
+        line-height: 1.6;
+      }
+    
+      .review-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        padding-top: var(--spacing-md);
+        border-top: 1px solid var(--color-border);
+      }
+    
+      .btn-action {
+        background: none;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-xs);
+        color: var(--color-text-light);
+        cursor: pointer;
+        transition: color var(--transition-fast);
+        padding: var(--spacing-xs) var(--spacing-sm);
+      }
+    
+      .btn-action:hover {
+        color: var(--color-primary);
+      }
+    
+      .review-owner-actions {
+        margin-left: auto;
+        display: flex;
+        gap: var(--spacing-xs);
+      }
+    
+      .btn-edit:hover {
+        color: var(--color-info);
+      }
+    
+      .btn-delete:hover {
+        color: var(--color-danger);
+      }
+    
+      .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: var(--spacing-xxl) var(--spacing-md);
+      }
+    
+      .empty-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: var(--color-primary-light);
+        color: var(--color-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: var(--spacing-md);
+      }
+    
+      .filter-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+    
+      .filter-btn {
+        background-color: var(--color-primary-light);
+        color: var(--color-primary);
+        border: none;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--border-radius-md);
+        cursor: pointer;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+    
+      .filter-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        z-index: 10;
+        min-width: 280px;
+        padding: var(--spacing-md);
+        background-color: var(--color-card);
+        border-radius: var(--border-radius-md);
+        box-shadow: var(--shadow-lg);
+        margin-top: var(--spacing-sm);
+      }
+    
+      .filter-dropdown:hover .filter-content {
+        display: block;
+      }
+    
+      .filter-group {
+        margin-bottom: var(--spacing-md);
+      }
+    
+      .filter-group h4 {
+        margin-bottom: var(--spacing-xs);
+        font-size: 0.95rem;
+        color: var(--color-text);
+      }
+    
+      .checkbox-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-xs);
+      }
+    
+      .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        cursor: pointer;
+      }
+    
+      .search-filter {
+        display: flex;
+        gap: var(--spacing-md);
+        align-items: center;
+      }
+    
+      .search-bar {
+        position: relative;
+        width: 300px;
+      }
+    
+      .search-bar input {
+        width: 100%;
+        padding: var(--spacing-sm) var(--spacing-md);
+        padding-right: 40px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-md);
+        background-color: var(--color-input);
+      }
+    
+      .search-bar i {
+        position: absolute;
+        right: var(--spacing-md);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--color-text-light);
+        cursor: pointer;
+      }
+    
+      /* Dodatkowe style dla obsługi filtrowania */
+      .filtering .review-card {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+    
+      #no-results-message {
+        margin-top: var(--spacing-xl);
+      }
+    
+      .reset-btn {
+        background-color: var(--color-card);
+        color: var(--color-text-light);
+        border: 1px solid var(--color-border);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: var(--border-radius-md);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+      }
+    
+      .reset-btn:hover {
+        background-color: var(--color-danger-light);
+        color: var(--color-danger);
+      }
+    
+      .search-bar i:hover {
+        color: var(--color-primary);
+      }
+    
+      .entity-name {
+        position: relative;
+      }
+    
+      .entity-name.loading::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--color-primary),
+          transparent
+        );
+        animation: loading-animation 1.5s infinite;
+      }
+    
+      @keyframes loading-animation {
+        0% {
+          left: -100%;
+        }
+        100% {
+          left: 100%;
+        }
+      }
+    
+      .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background-color: var(--color-card);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
+        margin-bottom: var(--spacing-lg);
+      }
+    
+      .spinner {
+        font-size: 2rem;
+        color: var(--color-primary);
+        margin-bottom: 1rem;
+      }
+    
+      .loading-state p {
+        color: var(--color-text-light);
+      }
+    </style>
+    
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Elementy DOM
+        const loadingIndicator = document.getElementById("loading-indicator");
+        const reviewsList = document.getElementById("reviews-list");
+    
+        // Początkowo ukryj listę recenzji i pokaż wskaźnik ładowania
+        if (loadingIndicator && reviewsList) {
+          reviewsList.style.display = "none";
+        }
+    
+        // Obiekty do przechowywania danych podmiotów
+        let coffeeData = {};
+        let roasteryData = {};
+        let shopData = {};
+    
+        // Funkcja do dynamicznego pobierania danych
+        async function fetchEntityData() {
+          try {
+            console.log("Rozpoczynam pobieranie danych z API...");
+    
+            // Pobierz dane kaw - użyj względnej ścieżki zamiast pełnego URL
+            console.log("Pobieranie danych o kawach...");
+            const coffeesResponse = await fetch("/api/coffees");
+            if (coffeesResponse.ok) {
+              const coffeesData = await coffeesResponse.json();
+              console.log("Pobrano dane kaw:", coffeesData.length);
+              coffeeData = {};
+              coffeesData.forEach((coffee) => {
+                coffeeData[coffee.id] = coffee;
+              });
+              console.log("Mapa kaw:", Object.keys(coffeeData).length);
+            } else {
+              console.error("Błąd pobierania danych kaw:", coffeesResponse.status);
+              // Próba alternatywnej ścieżki
+              const altCoffeesResponse = await fetch("/coffees");
+              if (altCoffeesResponse.ok) {
+                const altCoffeesData = await altCoffeesResponse.json();
+                console.log(
+                  "Pobrano dane kaw z alternatywnego źródła:",
+                  altCoffeesData.length
+                );
+                coffeeData = {};
+                altCoffeesData.forEach((coffee) => {
+                  coffeeData[coffee.id] = coffee;
+                });
+              } else {
+                console.error(
+                  "Również alternatywna ścieżka nie działa dla kaw:",
+                  altCoffeesResponse.status
+                );
+              }
+            }
+    
+            // Pobierz dane palarni - użyj względnej ścieżki zamiast pełnego URL
+            console.log("Pobieranie danych o palarniach...");
+            const roasteriesResponse = await fetch("/api/roasteries");
+            if (roasteriesResponse.ok) {
+              const roasteriesData = await roasteriesResponse.json();
+              console.log("Pobrano dane palarni:", roasteriesData.length);
+              roasteryData = {};
+              roasteriesData.forEach((roastery) => {
+                roasteryData[roastery.id] = roastery;
+              });
+              console.log("Mapa palarni:", Object.keys(roasteryData).length);
+            } else {
+              console.error(
+                "Błąd pobierania danych palarni:",
+                roasteriesResponse.status
+              );
+              // Próba alternatywnej ścieżki
+              const altRoasteriesResponse = await fetch("/roasteries");
+              if (altRoasteriesResponse.ok) {
+                const altRoasteriesData = await altRoasteriesResponse.json();
+                console.log(
+                  "Pobrano dane palarni z alternatywnego źródła:",
+                  altRoasteriesData.length
+                );
+                roasteryData = {};
+                altRoasteriesData.forEach((roastery) => {
+                  roasteryData[roastery.id] = roastery;
+                });
+              } else {
+                console.error(
+                  "Również alternatywna ścieżka nie działa dla palarni:",
+                  altRoasteriesResponse.status
+                );
+              }
+            }
+    
+            // Pobierz dane kawiarni - użyj względnej ścieżki zamiast pełnego URL
+            console.log("Pobieranie danych o kawiarniach...");
+            const shopsResponse = await fetch("/api/shops");
+            if (shopsResponse.ok) {
+              const shopsData = await shopsResponse.json();
+              console.log("Pobrano dane kawiarni:", shopsData.length);
+              shopData = {};
+              shopsData.forEach((shop) => {
+                shopData[shop.id] = shop;
+              });
+              console.log("Mapa kawiarni:", Object.keys(shopData).length);
+            } else {
+              console.error(
+                "Błąd pobierania danych kawiarni:",
+                shopsResponse.status
+              );
+              // Próba alternatywnej ścieżki
+              const altShopsResponse = await fetch("/shops");
+              if (altShopsResponse.ok) {
+                const altShopsData = await altShopsResponse.json();
+                console.log(
+                  "Pobrano dane kawiarni z alternatywnego źródła:",
+                  altShopsData.length
+                );
+                shopData = {};
+                altShopsData.forEach((shop) => {
+                  shopData[shop.id] = shop;
+                });
+              } else {
+                console.error(
+                  "Również alternatywna ścieżka nie działa dla kawiarni:",
+                  altShopsResponse.status
+                );
+              }
+            }
+          } catch (error) {
+            console.error("Błąd pobierania danych:", error);
+          }
+    
+          // Po zebraniu danych, zaktualizuj nazwy w recenzjach
+          console.log("Aktualizacja nazw w recenzjach...");
+          updateEntityNames();
+    
+          // Ukryj wskaźnik ładowania i pokaż listę recenzji
+          if (loadingIndicator && reviewsList) {
+            loadingIndicator.style.display = "none";
+            reviewsList.style.display = "flex";
+          }
+    
+          // Zainicjuj filtry po wczytaniu danych
+          initializeFilters();
+        }
+        function updateEntityNames() {
+          console.log("Aktualizuję nazwy podmiotów...");
+    
+          // Aktualizuj odnośniki do kawy
+          const coffeeLinks = document.querySelectorAll(".coffee-link");
+          console.log("Znaleziono odnośników do kaw:", coffeeLinks.length);
+    
+          coffeeLinks.forEach((link) => {
+            const coffeeId = parseInt(link.getAttribute("data-id"));
+            const nameElement = link.querySelector(".entity-name");
+    
+            console.log(
+              "Aktualizuję kawę ID:",
+              coffeeId,
+              "Element:",
+              nameElement ? "znaleziony" : "brak"
+            );
+    
+            if (!nameElement) return; // Jeśli nazwa jest już ustawiona w HTML
+    
+            if (coffeeData[coffeeId]) {
+              nameElement.textContent = coffeeData[coffeeId].name;
+              nameElement.classList.remove("loading");
+              console.log(
+                "Zaktualizowano nazwę kawy ID",
+                coffeeId,
+                "na:",
+                coffeeData[coffeeId].name
+              );
+            } else {
+              nameElement.textContent = `Coffee #${coffeeId}`;
+              nameElement.classList.remove("loading");
+              console.log("Nie znaleziono danych dla kawy ID", coffeeId);
+            }
+          });
+    
+          // Aktualizuj odnośniki do palarni
+          const roasteryLinks = document.querySelectorAll(".roastery-link");
+          console.log("Znaleziono odnośników do palarni:", roasteryLinks.length);
+    
+          roasteryLinks.forEach((link) => {
+            const roasteryId = parseInt(link.getAttribute("data-id"));
+            const nameElement = link.querySelector(".entity-name");
+    
+            console.log(
+              "Aktualizuję palarnię ID:",
+              roasteryId,
+              "Element:",
+              nameElement ? "znaleziony" : "brak"
+            );
+    
+            if (!nameElement) return; // Jeśli nazwa jest już ustawiona w HTML
+    
+            if (roasteryData[roasteryId]) {
+              nameElement.textContent = roasteryData[roasteryId].name;
+              nameElement.classList.remove("loading");
+              console.log(
+                "Zaktualizowano nazwę palarni ID",
+                roasteryId,
+                "na:",
+                roasteryData[roasteryId].name
+              );
+            } else {
+              nameElement.textContent = `Roastery #${roasteryId}`;
+              nameElement.classList.remove("loading");
+              console.log("Nie znaleziono danych dla palarni ID", roasteryId);
+            }
+          });
+    
+          // Aktualizuj odnośniki do kawiarni
+          const shopLinks = document.querySelectorAll(".shop-link");
+          console.log("Znaleziono odnośników do kawiarni:", shopLinks.length);
+    
+          shopLinks.forEach((link) => {
+            const shopId = parseInt(link.getAttribute("data-id"));
+            const nameElement = link.querySelector(".entity-name");
+    
+            console.log(
+              "Aktualizuję kawiarnię ID:",
+              shopId,
+              "Element:",
+              nameElement ? "znaleziony" : "brak"
+            );
+    
+            if (!nameElement) return; // Jeśli nazwa jest już ustawiona w HTML
+    
+            if (shopData[shopId]) {
+              nameElement.textContent = shopData[shopId].name;
+              nameElement.classList.remove("loading");
+              console.log(
+                "Zaktualizowano nazwę kawiarni ID",
+                shopId,
+                "na:",
+                shopData[shopId].name
+              );
+            } else {
+              nameElement.textContent = `Coffee Shop #${shopId}`;
+              nameElement.classList.remove("loading");
+              console.log("Nie znaleziono danych dla kawiarni ID", shopId);
+            }
+          });
+        }
+    
+        // Wywołaj funkcję pobierania danych
+        fetchEntityData();
+    
+        // Funkcja debounce - opóźnia wykonanie funkcji aby zmniejszyć liczbę wywołań
+        function debounce(func, delay) {
+          let timeout;
+          return function () {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+          };
+        }
+    
+        // Inicjalizacja filtrów i funkcji interaktywnych
+        function initializeFilters() {
+          // Filtrowanie recenzji - min. ocena
+          const minRating = document.getElementById("min-rating");
+          const minRatingValue = document.getElementById("min-rating-value");
+    
+          if (minRating && minRatingValue) {
+            minRating.addEventListener("input", function () {
+              minRatingValue.textContent = this.value;
+            });
+    
+            minRating.addEventListener("change", filterReviews);
+          }
+    
+          // Filtrowanie recenzji - typ
+          const typeCheckboxes = document.querySelectorAll(
+            'input[data-filter-type="type"]'
+          );
+          typeCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener("change", filterReviews);
+          });
+    
+          // Wyszukiwanie z debounce
+          const searchInput = document.getElementById("review-search");
+          if (searchInput) {
+            searchInput.addEventListener("input", debounce(filterReviews, 300));
+          }
+    
+          // Przycisk wyszukiwania
+          const searchIcon = document.querySelector(".search-bar i");
+          if (searchIcon) {
+            searchIcon.addEventListener("click", function () {
+              filterReviews(); // Natychmiastowe wyszukiwanie po kliknięciu ikony
+            });
+          }
+    
+          // Dodaj przycisk resetu filtrów obok wyszukiwarki
+          const searchFilter = document.querySelector(".search-filter");
+          if (searchFilter && !document.querySelector(".reset-btn")) {
+            const resetButton = document.createElement("button");
+            resetButton.className = "reset-btn";
+            resetButton.innerHTML = '<i class="fas fa-times"></i> Clear';
+            resetButton.addEventListener("click", resetFilters);
+    
+            searchFilter.appendChild(resetButton);
+          }
+    
+          // Obsługa przycisku "Lubię to"
+          const likeButtons = document.querySelectorAll(".btn-like");
+          likeButtons.forEach((btn) => {
+            btn.addEventListener("click", function () {
+              const reviewId = this.getAttribute("data-review-id");
+              const icon = this.querySelector("i");
+              const count = this.querySelector("span");
+              const liked = icon.classList.contains("fas");
+    
+              // Optymistycznie aktualizujemy UI
+              if (!liked) {
+                icon.classList.replace("far", "fas");
+                count.textContent = parseInt(count.textContent || 0) + 1;
+    
+                // Spróbuj wysłać polubienie do API (opcjonalnie)
+                sendLikeToAPI(reviewId, true).catch(() => {
+                  // W przypadku błędu przywróć poprzedni stan
+                  icon.classList.replace("fas", "far");
+                  count.textContent = Math.max(
+                    0,
+                    parseInt(count.textContent || 0) - 1
+                  );
+                });
+              } else {
+                icon.classList.replace("fas", "far");
+                count.textContent = Math.max(
+                  0,
+                  parseInt(count.textContent || 0) - 1
+                );
+    
+                // Spróbuj wysłać usunięcie polubienia do API (opcjonalnie)
+                sendLikeToAPI(reviewId, false).catch(() => {
+                  // W przypadku błędu przywróć poprzedni stan
+                  icon.classList.replace("far", "fas");
+                  count.textContent = parseInt(count.textContent || 0) + 1;
+                });
+              }
+            });
+          });
+    
+          // Obsługa usuwania recenzji
+          const deleteButtons = document.querySelectorAll(".btn-delete");
+          deleteButtons.forEach((btn) => {
+            btn.addEventListener("click", async function () {
+              if (confirm("Are you sure you want to delete this review?")) {
+                const reviewId = this.dataset.reviewId;
+    
+                try {
+                  // Pokazuj indykator ładowania na przycisku
+                  this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                  this.disabled = true;
+    
+                  // Użyj API do usunięcia recenzji
+                  const response = await fetch(`/api/reviews/${reviewId}`, {
+                    method: "DELETE",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: "Bearer " + getAuthToken(),
+                    },
+                  });
+    
+                  if (response.ok) {
+                    // Animacja usuwania
+                    const card = this.closest(".review-card");
+                    card.style.opacity = "0";
+                    card.style.transform = "translateX(100px)";
+    
+                    setTimeout(() => {
+                      // Usuń element z DOM
+                      card.remove();
+    
+                      // Sprawdź, czy nie ma więcej recenzji
+                      if (document.querySelectorAll(".review-card").length === 0) {
+                        location.reload(); // Odśwież stronę, aby pokazać komunikat o braku recenzji
+                      }
+                    }, 300);
+                  } else {
+                    // Próbuj alternatywny endpoint
+                    const altResponse = await fetch(`/reviews/${reviewId}`, {
+                      method: "DELETE",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + getAuthToken(),
+                      },
+                    });
+    
+                    if (altResponse.ok) {
+                      // Animacja usuwania
+                      const card = this.closest(".review-card");
+                      card.style.opacity = "0";
+                      card.style.transform = "translateX(100px)";
+    
+                      setTimeout(() => {
+                        // Usuń element z DOM
+                        card.remove();
+    
+                        // Sprawdź, czy nie ma więcej recenzji
+                        if (
+                          document.querySelectorAll(".review-card").length === 0
+                        ) {
+                          location.reload(); // Odśwież stronę, aby pokazać komunikat o braku recenzji
+                        }
+                      }, 300);
+                    } else {
+                      this.innerHTML = '<i class="far fa-trash-alt"></i>';
+                      this.disabled = false;
+    
+                      const errorText = await (response.ok
+                        ? response
+                        : altResponse
+                      ).text();
+                      showNotification(
+                        "Error deleting review: " + errorText,
+                        "error"
+                      );
+                    }
+                  }
+                } catch (error) {
+                  console.error("Error deleting review:", error);
+                  this.innerHTML = '<i class="far fa-trash-alt"></i>';
+                  this.disabled = false;
+                  showNotification(
+                    "An error occurred while deleting the review",
+                    "error"
+                  );
+                }
+              }
+            });
+          });
+        }
+    
+        // Funkcja wysyłająca polubienie do API (opcjonalnie)
+        async function sendLikeToAPI(reviewId, liked) {
+          if (!reviewId) return;
+    
+          try {
+            const endpoint = liked
+              ? `/api/reviews/${reviewId}/like`
+              : `/api/reviews/${reviewId}/unlike`;
+            const method = liked ? "POST" : "DELETE";
+    
+            const response = await fetch(endpoint, {
+              method: method,
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + getAuthToken(),
+              },
+            });
+    
+            if (!response.ok) {
+              throw new Error("API request failed");
+            }
+          } catch (error) {
+            console.error("Error sending like to API:", error);
+            throw error; // Przekaż błąd dalej, aby można było obsłużyć go w UI
+          }
+        }
+    
+        // Pobiera token uwierzytelniający z sesji
+        function getAuthToken() {
+          // Implementacja zależy od sposobu przechowywania tokenu
+          return (
+            document.cookie
+              .split("; ")
+              .find((row) => row.startsWith("jwt_token="))
+              ?.split("=")[1] || ""
+          );
+        }
+    
+        // Pokaż powiadomienie
+        function showNotification(message, type = "info") {
+          // Sprawdź, czy element powiadomienia już istnieje
+          let notification = document.querySelector(".notification");
+    
+          if (!notification) {
+            // Stwórz nowy element powiadomienia
+            notification = document.createElement("div");
+            notification.className = "notification";
+            document.body.appendChild(notification);
+          }
+    
+          // Ustaw klasę typu i treść
+          notification.className = `notification ${type}`;
+          notification.textContent = message;
+          notification.style.display = "block";
+    
+          // Po 3 sekundach ukryj powiadomienie
+          setTimeout(() => {
+            notification.style.opacity = "0";
+            setTimeout(() => {
+              notification.style.display = "none";
+            }, 300);
+          }, 3000);
+        }
+    
+        // Ulepszona funkcja filtrująca recenzje
+        function filterReviews() {
+          // Pobierz wartości filtrów
+          const searchInput = document.getElementById("review-search");
+          const minRating = document.getElementById("min-rating");
+          const searchText = searchInput
+            ? searchInput.value.toLowerCase().trim()
+            : "";
+          const minRatingVal = minRating ? parseFloat(minRating.value) : 1;
+          const selectedTypes = Array.from(
+            document.querySelectorAll('input[data-filter-type="type"]:checked')
+          ).map((cb) => cb.value);
+    
+          // Przygotuj warunki wyszukiwania - podziel na słowa kluczowe
+          const searchTerms = searchText
+            .split(/\s+/)
+            .filter((term) => term.length > 0);
+    
+          // Pobierz wszystkie karty recenzji
+          const reviewCards = document.querySelectorAll(".review-card");
+          let visibleCount = 0;
+    
+          // Aktualizuj interfejs - dodaj klasę filtrowania
+          document.body.classList.add("filtering");
+    
+          // Sprawdź każdą recenzję
+          reviewCards.forEach((card) => {
+            const rating = parseFloat(card.dataset.rating) || 0;
+            const type = card.dataset.type || "other";
+    
+            // Pobierz tekst z elementów recenzji
+            const contentElement = card.querySelector(".review-content p");
+            const subjectElement = card.querySelector(".review-subject");
+            const userElement = card.querySelector(".review-user");
+    
+            const content = contentElement
+              ? contentElement.textContent.toLowerCase()
+              : "";
+            const subject = subjectElement
+              ? subjectElement.textContent.toLowerCase()
+              : "";
+            const user = userElement ? userElement.textContent.toLowerCase() : "";
+    
+            // Łączenie wszystkich tekstów do przeszukania
+            const allText = `${content} ${subject} ${user}`;
+    
+            // Sprawdzanie czy ocena spełnia kryteria
+            const matchesRating = rating >= minRatingVal;
+    
+            // Sprawdzanie czy typ recenzji jest wybrany
+            const matchesType = selectedTypes.includes(type);
+    
+            // Ulepszone wyszukiwanie - sprawdza każde słowo kluczowe
+            let matchesSearch = true;
+            if (searchTerms.length > 0) {
+              matchesSearch = searchTerms.every((term) => allText.includes(term));
+            }
+    
+            // Pokaż lub ukryj recenzję
+            if (matchesRating && matchesType && matchesSearch) {
+              card.style.display = "flex";
+              visibleCount++;
+            } else {
+              card.style.display = "none";
+            }
+          });
+    
+          // Usuń klasę filtrowania
+          setTimeout(() => {
+            document.body.classList.remove("filtering");
+          }, 300);
+    
+          // Pokaż komunikat, jeśli nie znaleziono wyników
+          const reviewsContainer = document.getElementById("reviews-list");
+    
+          if (visibleCount === 0 && reviewCards.length > 0) {
+            // Komunikat o braku wyników wyszukiwania
+            if (!document.getElementById("no-results-message")) {
+              const noResults = document.createElement("div");
+              noResults.id = "no-results-message";
+              noResults.className = "empty-state";
+              noResults.innerHTML = `
+                            <div class="empty-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <h3>No matching reviews</h3>
+                            <p>Try adjusting your filters or search criteria.</p>
+                            <button class="btn btn-secondary" id="reset-filters">
+                                Reset filters
+                            </button>
+                        `;
+    
+              if (reviewsContainer) {
+                reviewsContainer.parentNode.insertBefore(
+                  noResults,
+                  reviewsContainer.nextSibling
+                );
+              }
+    
+              const resetButton = document.getElementById("reset-filters");
+              if (resetButton) {
+                resetButton.addEventListener("click", resetFilters);
+              }
+            }
+          } else {
+            // Usuń komunikat o braku wyników, jeśli istnieje
+            const noResults = document.getElementById("no-results-message");
+            if (noResults) {
+              noResults.remove();
+            }
+          }
+        }
+    
+        // Funkcja resetująca wszystkie filtry
+        function resetFilters() {
+          const searchInput = document.getElementById("review-search");
+          const minRating = document.getElementById("min-rating");
+          const minRatingValue = document.getElementById("min-rating-value");
+          const typeCheckboxes = document.querySelectorAll(
+            'input[data-filter-type="type"]'
+          );
+    
+          // Reset wyszukiwania
+          if (searchInput) searchInput.value = "";
+    
+          // Reset oceny minimalnej
+          if (minRating) minRating.value = 1;
+          if (minRatingValue) minRatingValue.textContent = "1.0";
+    
+          // Zaznacz wszystkie typy
+          typeCheckboxes.forEach((checkbox) => {
+            checkbox.checked = true;
+          });
+    
+          // Zastosuj filtry
+          filterReviews();
+        }
+      });
+    </script>
+    
+    <style>
+      /* Style dla powiadomień */
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 4px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+        transition: opacity 0.3s ease;
+        opacity: 1;
+      }
+    
+      .notification.info {
+        background-color: var(--color-primary);
+      }
+    
+      .notification.error {
+        background-color: var(--color-danger);
+      }
+    
+      .notification.success {
+        background-color: var(--color-success);
+      }
+    </style>
+    {% endblock %}
+    

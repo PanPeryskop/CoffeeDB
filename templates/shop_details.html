@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+
+{% block title %}{{ shop.name }} - Coffee Shop - Coffee Base{% endblock %}
+
+{% block head %}
+{{ super() }}
+<!-- We won't load Leaflet here - we'll load it asynchronously in the script -->
+{% endblock %}
+
+{% block content %}
+<div class="back-link">
+  <a href="{{ url_for('shops') }}"><i class="fas fa-arrow-left"></i> Back to All Coffee Shops</a>
+</div>
+
+<div class="shop-header">
+  <h1>{{ shop.name }}</h1>
+  <div class="shop-meta">
+    <span class="shop-location">
+      <i class="fas fa-map-marker-alt"></i> {{ shop.city }}, {{ shop.country }}
+    </span>
+    {% if shop.avgRating %}
+    <span class="shop-rating">
+      <i class="fas fa-star"></i> {{ "%.1f"|format(shop.avgRating) }}/10
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="shop-container">
+  <div class="shop-content fade-in">
+    <div class="shop-details-card">
+      {% if shop.description %}
+      <div class="shop-description">
+        <h2>About this coffee shop</h2>
+        <p>{{ shop.description }}</p>
+      </div>
+      {% endif %}
+
+      <div class="shop-info-grid">
+        {% if shop.address %}
+        <div class="shop-info-item">
+          <div class="shop-info-icon">
+            <i class="fas fa-map-marked-alt"></i>
+          </div>
+          <div class="shop-info-content">
+            <h3>Address</h3>
+            <p>{{ shop.address }}</p>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if shop.website %}
+        <div class="shop-info-item">
+          <div class="shop-info-icon">
+            <i class="fas fa-globe"></i>
+          </div>
+          <div class="shop-info-content">
+            <h3>Website</h3>
+            <p><a href="{{ shop.website }}" target="_blank" rel="noopener">{{ shop.website }}</a></p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if shop.lat and shop.lng %}
+      <div class="shop-map-container">
+        <h2>Location</h2>
+        <div id="shop-map" class="map-container">
+          <div class="map-loading">Loading map...</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="shop-reviews fade-in delay-2">
+      <h2>Reviews for {{ shop.name }}</h2>
+      <div id="shop-reviews-container">
+        <div class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i> Loading reviews...
+        </div>
+      </div>
+      
+      <div class="add-review-section">
+        {% if session.get('jwt_token') %}
+        <a href="{{ url_for('create_review') }}?shopId={{ shop.id }}" class="btn btn-primary btn-block">
+          <i class="fas fa-star"></i> Add Review
+        </a>
+        {% else %}
+        <p class="auth-prompt">Log in to add a review.</p>
+        <a href="{{ url_for('login') }}" class="btn btn-outline btn-block">
+          <i class="fas fa-sign-in-alt"></i> Log In
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Store map data globally, similar to roastery_detail.html
+  const mapData = {
+    lat: {{ shop.lat|default(0) }},
+    lng: {{ shop.lng|default(0) }},
+    name: "{{ shop.name }}",
+    address: "{{ shop.address }}"
+  };
+
+  function initMap() {
+    const mapElement = document.getElementById('shop-map');
+    if (!mapElement) {
+      console.error('Map element not found.');
+      return;
+    }
+
+    // Check if map data is valid
+    if (!mapData.lat || !mapData.lng) {
+      console.warn('Invalid map data. Map will not be displayed.');
+      mapElement.innerHTML = '<p>Map data is not available.</p>';
+      return;
+    }
+
+    // Asynchronously load Leaflet library
+    const leafletPromise = new Promise((resolve, reject) => {
+      if (typeof L !== 'undefined') {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js';
+      script.onload = () => {
+        resolve();
+      };
+      script.onerror = () => {
+        reject(new Error('Failed to load Leaflet library.'));
+      };
+      document.head.appendChild(script);
+
+      const style = document.createElement('link');
+      style.rel = 'stylesheet';
+      style.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
+      style.onerror = () => {
+        console.error('Failed to load Leaflet CSS.');
+      };
+      document.head.appendChild(style);
+    });
+
+    leafletPromise
+      .then(() => {
+        // Initialize map
+        const map = L.map('shop-map').setView([mapData.lat, mapData.lng], 15);
+
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add marker
+        const marker = L.marker([mapData.lat, mapData.lng]).addTo(map);
+        marker.bindPopup(`<b>${mapData.name}</b><br>${mapData.address}`).openPopup();
+
+        // Invalidate size after content loads
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 100);
+
+        // Hide loading indicator
+        document.querySelector('.map-loading').style.display = 'none';
+      })
+      .catch(error => {
+        console.error(error);
+        mapElement.innerHTML = '<p>Failed to load map.</p>';
+      });
+  }
+
+  // Load reviews function
+  function loadReviews() {
+    fetch('/reviews?shopId={{ shop.id }}')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(reviews => {
+        const reviewsContainer = document.getElementById('shop-reviews-container');
+        reviewsContainer.innerHTML = '';
+        
+        if (reviews.length === 0) {
+          reviewsContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">
+                <i class="fas fa-comment-slash"></i>
+              </div>
+              <h3>No reviews yet</h3>
+              <p>Be the first to review this coffee shop!</p>
+            </div>
+          `;
+          return;
+        }
+        
+        // Sort reviews by date (newest first)
+        reviews.sort((a, b) => new Date(b.dateOfCreation) - new Date(a.dateOfCreation));
+        
+        const reviewsList = document.createElement('div');
+        reviewsList.className = 'reviews-list';
+        
+        reviews.forEach(review => {
+          const reviewDate = new Date(review.dateOfCreation).toLocaleDateString();
+          
+          const reviewElement = document.createElement('div');
+          reviewElement.className = 'review-card';
+          reviewElement.innerHTML = `
+            <div class="review-header">
+              <div class="review-user" data-user-id="${review.userId}">
+                <i class="fas fa-user"></i> User #${review.userId}
+              </div>
+              <div class="review-date">${reviewDate}</div>
+            </div>
+            <div class="review-rating">
+              <span class="rating-value">${review.rating}/10</span>
+              <div class="rating-stars">
+                ${generateStars(review.rating)}
+              </div>
+            </div>
+            <div class="review-content">
+              <p>${review.review || "No comment provided."}</p>
+            </div>
+          `;
+          
+          reviewsList.appendChild(reviewElement);
+        });
+        
+        reviewsContainer.appendChild(reviewsList);
+      })
+      .catch(error => {
+        console.error('Error fetching reviews:', error);
+        document.getElementById('shop-reviews-container').innerHTML = `
+          <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i>
+            <p>Error loading reviews. Please try again later.</p>
+          </div>
+        `;
+      });
+  }
+  
+  // Helper function to generate star icons
+  function generateStars(rating) {
+    const fullStars = Math.floor(rating / 2);
+    const halfStar = rating % 2 >= 1 ? 1 : 0;
+    const emptyStars = 5 - fullStars - halfStar;
+    
+    let stars = '';
+    for (let i = 0; i < fullStars; i++) {
+      stars += '<i class="fas fa-star"></i>';
+    }
+    if (halfStar) {
+      stars += '<i class="fas fa-star-half-alt"></i>';
+    }
+    for (let i = 0; i < emptyStars; i++) {
+      stars += '<i class="far fa-star"></i>';
+    }
+    
+    return stars;
+  }
+
+  // Initialize map and load reviews after DOM is loaded
+  document.addEventListener('DOMContentLoaded', function() {
+    initMap();
+    loadReviews();
+  });
+</script>
+
+<style>
+  /* Shop Detail Specific Styles */
+  .back-link {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .back-link a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-weight: 500;
+  }
+
+  .shop-container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .shop-header {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .shop-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    color: var(--color-text-light);
+  }
+
+  .shop-location, .shop-rating {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .shop-rating {
+    color: var(--color-warning);
+    font-weight: 500;
+  }
+
+  .shop-details-card {
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-md);
+  }
+
+  .shop-description {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .shop-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .shop-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .shop-info-icon {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .shop-info-content h3 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-xs);
+    font-size: 1rem;
+  }
+
+  .shop-info-content p {
+    margin: 0;
+    color: var(--color-text-light);
+  }
+
+  .shop-map-container {
+    margin-top: var(--spacing-xl);
+  }
+
+  .map-container {
+    height: 400px;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .map-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-bg-card);
+    z-index: 1000;
+  }
+
+  .shop-reviews {
+    margin-top: var(--spacing-xl);
+  }
+
+  .reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .review-card {
+    background-color: var(--color-bg-card);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .review-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+  }
+
+  .review-rating {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .rating-value {
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+
+  .rating-stars {
+    color: var(--color-warning);
+  }
+
+  .add-review-section {
+    margin-top: var(--spacing-lg);
+  }
+
+  .auth-prompt {
+    margin-bottom: var(--spacing-sm);
+    text-align: center;
+    color: var(--color-text-light);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: var(--spacing-xl) 0;
+    color: var(--color-text-light);
+  }
+
+  .empty-icon {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text-muted);
+  }
+
+  .loading-spinner {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-light);
+  }
+
+  .error-message {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-danger);
+  }
+
+  /* Optimizations */
+  .fade-in {
+    will-change: opacity;
+  }
+
+  @media (max-width: 768px) {
+    .shop-info-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}

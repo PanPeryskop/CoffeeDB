@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+
+{% block title %}{% if coffee %}Edit Coffee{% else %}Add New Coffee{% endif %} {% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{% if coffee %}Edit Coffee{% else %}Add New Coffee{% endif %}</h1>
+    <p>Fill out the form below to {% if coffee %}update{% else %}add{% endif %} the coffee to the database</p>
+</div>
+
+<div class="form-container fade-in">
+    <form method="POST" class="detailed-form">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="name">Coffee Name <span class="required">*</span></label>
+                <input type="text" id="name" name="name" class="form-control" value="{{ coffee.name if coffee else '' }}" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label for="country">Country of Origin <span class="required">*</span></label>
+                <div class="custom-select">
+                    <select id="country" name="country" class="form-control" required>
+                        <option value="" disabled selected>Select country</option>
+                        <option value="Brazil" {% if coffee and coffee.country == 'Brazil' %}selected{% endif %}>Brazil</option>
+                        <option value="Colombia" {% if coffee and coffee.country == 'Colombia' %}selected{% endif %}>Colombia</option>
+                        <option value="Ethiopia" {% if coffee and coffee.country == 'Ethiopia' %}selected{% endif %}>Ethiopia</option>
+                        <option value="Guatemala" {% if coffee and coffee.country == 'Guatemala' %}selected{% endif %}>Guatemala</option>
+                        <option value="Costa Rica" {% if coffee and coffee.country == 'Costa Rica' %}selected{% endif %}>Costa Rica</option>
+                        <option value="Kenya" {% if coffee and coffee.country == 'Kenya' %}selected{% endif %}>Kenya</option>
+                        <option value="Honduras" {% if coffee and coffee.country == 'Honduras' %}selected{% endif %}>Honduras</option>
+                        <option value="Rwanda" {% if coffee and coffee.country == 'Rwanda' %}selected{% endif %}>Rwanda</option>
+                        <option value="Mexico" {% if coffee and coffee.country == 'Mexico' %}selected{% endif %}>Mexico</option>
+                        <option value="Peru" {% if coffee and coffee.country == 'Peru' %}selected{% endif %}>Peru</option>
+                        <option value="Burundi" {% if coffee and coffee.country == 'Burundi' %}selected{% endif %}>Burundi</option>
+                        <option value="Panama" {% if coffee and coffee.country == 'Panama' %}selected{% endif %}>Panama</option>
+                        <option value="India" {% if coffee and coffee.country == 'India' %}selected{% endif %}>India</option>
+                        <option value="Other" {% if coffee and coffee.country not in ['Brazil', 'Colombia', 'Ethiopia', 'Guatemala', 'Costa Rica', 'Kenya', 'Honduras', 'Rwanda', 'Mexico', 'Peru', 'Burundi', 'Panama', 'India'] %}selected{% endif %}>Other</option>
+                    </select>
+                    <div class="select-arrow"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="process">Process <span class="required">*</span></label>
+                <div class="custom-select">
+                    <select id="process" name="process" class="form-control" required>
+                        <option value="" disabled selected>Select process</option>
+                        <option value="Natural" {% if coffee and coffee.process == 'Natural' %}selected{% endif %}>Natural</option>
+                        <option value="Washed" {% if coffee and coffee.process == 'Washed' %}selected{% endif %}>Washed</option>
+                        <option value="Honey" {% if coffee and coffee.process == 'Honey' %}selected{% endif %}>Honey</option>
+                        <option value="Anaerobic" {% if coffee and coffee.process == 'Anaerobic' %}selected{% endif %}>Anaerobic</option>
+                        <option value="Carbonic Maceration" {% if coffee and coffee.process == 'Carbonic Maceration' %}selected{% endif %}>Carbonic Maceration</option>
+                        <option value="Wet Hulled" {% if coffee and coffee.process == 'Wet Hulled' %}selected{% endif %}>Wet Hulled</option>
+                    </select>
+                    <div class="select-arrow"></div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="roastProfile">Roast Profile <span class="required">*</span></label>
+                <div class="roast-slider">
+                    <div class="roast-levels">
+                        <span class="roast-level" data-value="light">Light</span>
+                        <span class="roast-level" data-value="medium">Medium</span>
+                        <span class="roast-level" data-value="dark">Dark</span>
+                    </div>
+                    <input type="range" id="roastSlider" min="1" max="3" step="1" value="{{ '1' if coffee and coffee.roastProfile == 'light' else '2' if coffee and coffee.roastProfile == 'medium' else '3' if coffee and coffee.roastProfile == 'dark' else '2' }}">
+                    <input type="hidden" id="roastProfile" name="roastProfile" value="{{ coffee.roastProfile if coffee else 'medium' }}">
+                </div>
+            </div>
+            
+            <div class="form-group full-width">
+                <label for="flavourNotes">Flavor Notes <span class="required">*</span></label>
+                <div class="tags-input-container">
+                    <input type="text" id="tagInput" class="form-control" placeholder="Add a note and press Enter...">
+                    <div class="tags-container" id="tagsContainer">
+                        {% if coffee and coffee.flavourNotes %}
+                            {% for note in coffee.flavourNotes %}
+                                <span class="tag">{{ note }}<span class="tag-remove">×</span></span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    <input type="hidden" id="flavourNotes" name="flavourNotes" value="{{ ','.join(coffee.flavourNotes) if coffee and coffee.flavourNotes else '' }}">
+                </div>
+                <div class="suggested-tags">
+                    <div class="suggested-tags-header">Popular notes:</div>
+                    <div class="suggested-tags-list">
+                        <span class="suggested-tag">Chocolate</span>
+                        <span class="suggested-tag">Caramel</span>
+                        <span class="suggested-tag">Nuts</span>
+                        <span class="suggested-tag">Berries</span>
+                        <span class="suggested-tag">Citrus</span>
+                        <span class="suggested-tag">Floral</span>
+                        <span class="suggested-tag">Apple</span>
+                        <span class="suggested-tag">Cherry</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group full-width">
+                <label for="description">Description <span class="required">*</span></label>
+                <textarea id="description" name="description" class="form-control" rows="5" required>{{ coffee.description if coffee else '' }}</textarea>
+                <div class="char-counter">
+                    <span id="currentCount">0</span>/<span id="maxCount">500</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="roasteryId">Roastery</label>
+                <div class="custom-select">
+                    <select id="roasteryId" name="roasteryId" class="form-control">
+                        <option value="0">Select roastery (optional)</option>
+                        <!-- Options would be populated from the database, example: -->
+                        <option value="1" {% if coffee and coffee.roasteryId == 1 %}selected{% endif %}>Coffee Roasters</option>
+                        <option value="2" {% if coffee and coffee.roasteryId == 2 %}selected{% endif %}>Java Specialty</option>
+                    </select>
+                    <div class="select-arrow"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{{ url_for('coffees') }}" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> {% if coffee %}Update{% else %}Add{% endif %} Coffee
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: var(--color-card);
+        padding: var(--spacing-xl);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
+    }
+    
+    @media (min-width: 768px) {
+        .form-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .full-width {
+        grid-column: 1 / -1;
+    }
+    
+    .required {
+        color: #e53935;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: var(--spacing-md);
+        justify-content: flex-end;
+        margin-top: var(--spacing-xl);
+    }
+    
+    .custom-select {
+        position: relative;
+    }
+    
+    .select-arrow {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 5px solid var(--color-text);
+        pointer-events: none;
+    }
+    
+    select.form-control {
+        appearance: none;
+        padding-right: 30px;
+    }
+    
+    .roast-slider {
+        margin-top: var(--spacing-sm);
+    }
+    
+    .roast-levels {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .roast-level {
+        font-size: 0.9rem;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--border-radius-sm);
+        cursor: pointer;
+        transition: background-color var(--transition-fast), color var(--transition-fast);
+    }
+    
+    .roast-level.active {
+        background-color: var(--color-primary);
+        color: white;
+    }
+    
+    input[type="range"] {
+        width: 100%;
+        height: 5px;
+        border-radius: 5px;
+        background: linear-gradient(to right, #d4a76a, #a67c52, #614c3c);
+        appearance: none;
+        cursor: pointer;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--color-primary);
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .tags-input-container {
+        border: 1px solid var(--color-border);
+        border-radius: var(--border-radius-md);
+        padding: var(--spacing-sm);
+        background-color: var(--color-card);
+    }
+    
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+        margin-top: var(--spacing-sm);
+    }
+    
+    .tag {
+        display: inline-flex;
+        align-items: center;
+        background-color: var(--color-accent);
+        color: white;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--border-radius-md);
+        font-size: 0.85rem;
+    }
+    
+    .tag-remove {
+        margin-left: var(--spacing-xs);
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    .tags-input-container input {
+        border: none;
+        padding: var(--spacing-sm) 0;
+        width: 100%;
+    }
+    
+    .tags-input-container input:focus {
+        outline: none;
+        box-shadow: none;
+    }
+    
+    .suggested-tags {
+        margin-top: var(--spacing-sm);
+    }
+    
+    .suggested-tags-header {
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+        margin-bottom: var(--spacing-xs);
+    }
+    
+    .suggested-tags-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+    
+    .suggested-tag {
+        background-color: var(--color-background);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--border-radius-sm);
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: background-color var(--transition-fast);
+    }
+    
+    .suggested-tag:hover {
+        background-color: var(--color-border);
+    }
+    
+    .char-counter {
+        text-align: right;
+        font-size: 0.85rem;
+        color: var(--color-text-light);
+        margin-top: var(--spacing-xs);
+    }
+</style>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Roast profile slider
+        const roastSlider = document.getElementById('roastSlider');
+        const roastProfile = document.getElementById('roastProfile');
+        const roastLevels = document.querySelectorAll('.roast-level');
+        
+        // Set initial active state
+        updateRoastLevel(roastSlider.value);
+        
+        roastSlider.addEventListener('input', function() {
+            updateRoastLevel(this.value);
+        });
+        
+        roastLevels.forEach(level => {
+            level.addEventListener('click', function() {
+                const value = this.dataset.value;
+                let sliderValue;
+                
+                if (value === 'light') sliderValue = 1;
+                else if (value === 'medium') sliderValue = 2;
+                else sliderValue = 3;
+                
+                roastSlider.value = sliderValue;
+                updateRoastLevel(sliderValue);
+            });
+        });
+        
+        function updateRoastLevel(value) {
+            roastLevels.forEach(level => level.classList.remove('active'));
+            
+            let profileValue;
+            if (value == 1) {
+                profileValue = 'light';
+                roastLevels[0].classList.add('active');
+            } else if (value == 2) {
+                profileValue = 'medium';
+                roastLevels[1].classList.add('active');
+            } else {
+                profileValue = 'dark';
+                roastLevels[2].classList.add('active');
+            }
+            
+            roastProfile.value = profileValue;
+        }
+        
+        // Tags input
+        const tagInput = document.getElementById('tagInput');
+        const tagsContainer = document.getElementById('tagsContainer');
+        const flavourNotesInput = document.getElementById('flavourNotes');
+        const suggestedTags = document.querySelectorAll('.suggested-tag');
+        
+        tagInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && this.value.trim() !== '') {
+                e.preventDefault();
+                addTag(this.value.trim());
+                this.value = '';
+            }
+        });
+        
+        suggestedTags.forEach(tag => {
+            tag.addEventListener('click', function() {
+                const tagText = this.textContent;
+                // Check if tag already exists
+                const existingTags = Array.from(tagsContainer.querySelectorAll('.tag')).map(t => t.textContent.replace('×', '').trim());
+                if (!existingTags.includes(tagText)) {
+                    addTag(tagText);
+                }
+            });
+        });
+        
+        // Set up existing tags
+        document.querySelectorAll('.tag-remove').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.parentElement.remove();
+                updateFlavourNotes();
+            });
+        });
+        
+        function addTag(text) {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.innerHTML = text + '<span class="tag-remove">×</span>';
+            
+            tag.querySelector('.tag-remove').addEventListener('click', function() {
+                tag.remove();
+                updateFlavourNotes();
+            });
+            
+            tagsContainer.appendChild(tag);
+            updateFlavourNotes();
+        }
+        
+        function updateFlavourNotes() {
+            const tags = Array.from(tagsContainer.querySelectorAll('.tag')).map(tag => 
+                tag.textContent.replace('×', '').trim()
+            );
+            flavourNotesInput.value = tags.join(',');
+        }
+        
+        // Character counter
+        const descriptionTextarea = document.getElementById('description');
+        const currentCount = document.getElementById('currentCount');
+        const maxCount = document.getElementById('maxCount');
+        const maxLength = 500;
+        
+        descriptionTextarea.addEventListener('input', function() {
+            const length = this.value.length;
+            currentCount.textContent = length;
+            
+            if (length > maxLength) {
+                this.value = this.value.substring(0, maxLength);
+                currentCount.textContent = maxLength;
+            }
+        });
+        
+        // Initial count
+        currentCount.textContent = descriptionTextarea.value.length;
+    });
+</script>
+{% endblock %}
+{% endblock %}

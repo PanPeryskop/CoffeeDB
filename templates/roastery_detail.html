@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+
+{% block title %}{{ roastery.name }} - Roastery - Coffee Base{% endblock %}
+
+{% block head %}
+{{ super() }}
+<!-- Leaflet dla map - załaduj asynchronicznie -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="back-link">
+  <a href="{{ url_for('roasteries') }}"><i class="fas fa-arrow-left"></i> Back to All Roasteries</a>
+</div>
+
+<div class="roastery-header">
+  <h1>{{ roastery.name }}</h1>
+  <div class="roastery-meta">
+    <span class="roastery-location">
+      <i class="fas fa-map-marker-alt"></i> {{ roastery.city }}, {{ roastery.country }}
+    </span>
+    {% if roastery.avgRating %}
+    <span class="roastery-rating">
+      <i class="fas fa-star"></i> {{ "%.1f"|format(roastery.avgRating) }}
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="roastery-detail-container">
+  <div class="roastery-detail-content">
+    <div class="roastery-detail-main fade-in delay-1">
+      {% if roastery.description %}
+      <div class="roastery-description">
+        <h2>About</h2>
+        <p>{{ roastery.description }}</p>
+      </div>
+      {% endif %}
+
+      <div class="roastery-details">
+        <div class="roastery-spec-item">
+          <div class="spec-icon"><i class="fas fa-map-marked-alt"></i></div>
+          <div class="spec-content">
+            <h3>Address</h3>
+            <p>{{ roastery.address }}</p>
+          </div>
+        </div>
+
+        {% if roastery.website %}
+        <div class="roastery-spec-item">
+          <div class="spec-icon"><i class="fas fa-globe"></i></div>
+          <div class="spec-content">
+            <h3>Website</h3>
+            <p><a href="{{ roastery.website }}" target="_blank" rel="noopener">{{ roastery.website }}</a></p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      {% if roastery.lat and roastery.lng %}
+      <div class="roastery-map-container">
+        <h2>Location</h2>
+        <div id="roastery-map" class="map-container">
+          <div class="map-loading">Loading map...</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="roastery-coffees fade-in delay-2">
+      <h2>Coffees from {{ roastery.name }}</h2>
+      {% if coffees %}
+      <div class="coffee-grid">
+        {% for coffee in coffees %}
+        <div class="coffee-card">
+          <div class="coffee-card-content">
+            <h3><a href="{{ url_for('get_coffee', coffee_id=coffee.id) }}">{{ coffee.name }}</a></h3>
+            <div class="coffee-card-details">
+              <span class="coffee-origin">{{ coffee.country }}</span>
+              <span class="coffee-process">{{ coffee.process }}</span>
+            </div>
+            <div class="coffee-flavors">
+              {% for note in coffee.flavourNotes[:3] %}
+              <span class="flavor-tag">{{ note }}</span>
+              {% endfor %}
+              {% if coffee.flavourNotes|length > 3 %}
+              <span class="flavor-tag">+{{ coffee.flavourNotes|length - 3 }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="no-coffees-message">
+        <p>No coffees from this roastery yet.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+  // Store map data globally
+  const mapData = {
+    lat: {{ roastery.lat|default(0) }},
+    lng: {{ roastery.lng|default(0) }},
+    name: "{{ roastery.name }}",
+    address: "{{ roastery.address }}"
+  };
+
+  function initMap() {
+    const mapElement = document.getElementById('roastery-map');
+    if (!mapElement) {
+      console.error('Map element not found.');
+      return;
+    }
+
+    // Check if map data is valid
+    if (!mapData.lat || !mapData.lng) {
+      console.warn('Invalid map data. Map will not be displayed.');
+      mapElement.innerHTML = '<p>Map data is not available.</p>';
+      return;
+    }
+
+    // Asynchronously load Leaflet library
+    const leafletPromise = new Promise((resolve, reject) => {
+      if (typeof L !== 'undefined') {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js';
+      script.onload = () => {
+        resolve();
+      };
+      script.onerror = () => {
+        reject(new Error('Failed to load Leaflet library.'));
+      };
+      document.head.appendChild(script);
+
+      const style = document.createElement('link');
+            style.rel = 'stylesheet';
+            style.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
+            style.onerror = () => {
+                console.error('Failed to load Leaflet CSS.');
+            };
+            document.head.appendChild(style);
+    });
+
+    leafletPromise
+      .then(() => {
+        // Initialize map
+        const map = L.map('roastery-map').setView([mapData.lat, mapData.lng], 13);
+
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add marker
+        const marker = L.marker([mapData.lat, mapData.lng]).addTo(map);
+        marker.bindPopup(`<b>${mapData.name}</b><br>${mapData.address}`).openPopup();
+
+        // Invalidate size after content loads
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 100);
+      })
+      .catch(error => {
+        console.error(error);
+        mapElement.innerHTML = '<p>Failed to load map.</p>';
+      });
+  }
+
+  // Initialize map after DOM is loaded
+  document.addEventListener('DOMContentLoaded', initMap);
+</script>
+
+<style>
+  .roastery-header {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .roastery-meta {
+    display: flex;
+    gap: var(--spacing-md);
+    color: var(--color-text-light);
+  }
+
+  .roastery-rating {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+
+  .roastery-rating i {
+    color: #ffc107;
+  }
+
+  .roastery-detail-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+  }
+
+  .roastery-detail-main {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+  }
+
+  .roastery-description {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .roastery-description p {
+    line-height: 1.6;
+  }
+
+  .roastery-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .roastery-spec-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .spec-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .spec-content h3 {
+    margin-bottom: var(--spacing-xs);
+    font-size: 1rem;
+  }
+
+  .map-container {
+    height: 300px;
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    margin-top: var(--spacing-md);
+    position: relative;
+    background-color: #f5f5f5;
+  }
+
+  .map-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 10px 15px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    z-index: 400;
+  }
+
+  .roastery-coffees {
+    margin-top: var(--spacing-xl);
+  }
+
+  .coffee-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+  }
+
+  .coffee-card {
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+    will-change: transform;
+  }
+
+  .coffee-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .coffee-card-content {
+    padding: var(--spacing-md);
+  }
+
+  .coffee-card h3 {
+    margin-bottom: var(--spacing-sm);
+    font-size: 1.1rem;
+  }
+
+  .coffee-card-details {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+  }
+
+  .coffee-flavors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+  }
+
+  .flavor-tag {
+    background-color: var(--color-bg-accent);
+    color: var(--color-text);
+    padding: 2px 8px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+  }
+
+  .no-coffees-message {
+    padding: var(--spacing-lg);
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-md);
+    text-align: center;
+    color: var(--color-text-light);
+  }
+
+  .back-link {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .back-link a {
+    color: var(--color-text-light);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    transition: color var(--transition-fast);
+  }
+
+  .back-link a:hover {
+    color: var(--color-primary);
+  }
+
+  /* Optymalizacje wydajności */
+  .fade-in {
+    will-change: opacity;
+  }
+
+  @media (max-width: 768px) {
+    .coffee-grid {
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+  }
+</style>
+{% endblock %}
