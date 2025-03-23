@@ -81,83 +81,96 @@ endblock %} {% block content %}
         <ul class="brew-methods">
           {% if coffee.roastProfile == 'light' %}
           <li>
-            <span class="brew-method">Pour Over</span> - Highlights acidity and
-            delicate fruit notes
+            <span class="brew-method">Pour Over</span> - Accentuates bright
+            acidity and delicate fruit notes.
           </li>
           <li>
-            <span class="brew-method">V60</span> - Excellent for bringing out
-            bright, citrus and floral accents
+            <span class="brew-method">V60</span> - Ideal for highlighting citrus
+            and floral characteristics.
           </li>
           <li>
-            <span class="brew-method">Chemex</span> - Clean, clear taste with
-            pronounced acidity
+            <span class="brew-method">Chemex</span> - Produces a clean, clear
+            cup with pronounced clarity.
           </li>
           <li>
-            <span class="brew-method">AeroPress</span> - Short extraction
-            preserves delicate aromatics
+            <span class="brew-method">AeroPress</span> - Quick extraction that
+            preserves subtle aromatics.
           </li>
           {% elif coffee.roastProfile == 'medium' %}
           <li>
-            <span class="brew-method">V60</span> - Balanced flavor with full
-            body
+            <span class="brew-method">V60</span> - Provides balanced extraction
+            and bright flavor.
           </li>
           <li>
-            <span class="brew-method">French Press</span> - Emphasizes sweetness
-            and body
+            <span class="brew-method">French Press</span> - Enhances body and
+            emphasizes inherent sweetness.
           </li>
           <li>
-            <span class="brew-method">Kalita Wave</span> - Even extraction for a
-            balanced profile
+            <span class="brew-method">Kalita Wave</span> - Ensures even
+            extraction for a harmonious profile.
           </li>
           <li>
-            <span class="brew-method">Drip Coffee</span> - Versatile method
-            perfect for medium roasts
+            <span class="brew-method">Drip Coffee</span> - Versatile method that
+            works well for medium roasts.
           </li>
           {% elif coffee.roastProfile == 'medium-dark' or coffee.roastProfile ==
           'medium dark' %}
           <li>
-            <span class="brew-method">French Press</span> - Emphasizes chocolate
-            and nutty notes
+            <span class="brew-method">French Press</span> - Extracts richer,
+            chocolate and nutty notes.
           </li>
           <li>
-            <span class="brew-method">Moka Pot</span> - Rich flavor with caramel
-            undertones
+            <span class="brew-method">Moka Pot</span> - Produces a full-bodied
+            cup with caramel undertones.
           </li>
           <li>
-            <span class="brew-method">AeroPress</span> - Pressure method that
-            enhances depth of flavor
+            <span class="brew-method">AeroPress</span> - Offers controlled
+            extraction for deeper complexity.
           </li>
           <li>
-            <span class="brew-method">Espresso</span> - Good entry point for
-            espresso beginners
+            <span class="brew-method">Espresso</span> - Ideal for those who
+            enjoy a concentrated, robust flavor.
+          </li>
+          {% elif coffee.roastProfile == 'dark' %}
+          <li>
+            <span class="brew-method">Espresso</span> - Intensifies bold,
+            roasted flavors.
+          </li>
+          <li>
+            <span class="brew-method">Moka Pot</span> - Extracts a rich,
+            full-bodied cup with caramel notes.
+          </li>
+          <li>
+            <span class="brew-method">French Press</span> - Emphasizes robust,
+            deep flavors.
+          </li>
+          <li>
+            <span class="brew-method">Turkish Coffee</span> - Traditional method
+            for extra dark, intense roasts.
           </li>
           {% else %}
           <li>
-            <span class="brew-method">Espresso</span> - Intense flavor, perfect
-            for milk-based drinks
+            <span class="brew-method">V60</span> - A reliable method for a
+            balanced extraction.
           </li>
           <li>
-            <span class="brew-method">Moka Pot</span> - Extracts deep,
-            chocolatey notes
+            <span class="brew-method">French Press</span> - Versatile choice
+            that brings out body and sweetness.
           </li>
           <li>
-            <span class="brew-method">French Press</span> - Highlights sweetness
-            and rich, full body
-          </li>
-          <li>
-            <span class="brew-method">Turkish Coffee</span> - Strong, intense
-            flavor profile
+            <span class="brew-method">AeroPress</span> - Offers a clean,
+            customizable extraction.
           </li>
           {% endif %} {% if coffee.process == 'natural' or coffee.process ==
           'honey' %}
           <li>
-            <span class="brew-method">Cold Brew</span> - Ideal for naturally
-            processed coffees, enhances sweetness and fruit notes
+            <span class="brew-method">Cold Brew</span> - Enhances inherent
+            sweetness and fruity notes.
           </li>
           {% else %}
           <li>
-            <span class="brew-method">Cold Brew</span> - Regardless of profile,
-            brings out sweetness and minimizes acidity
+            <span class="brew-method">Cold Brew</span> - Provides a smooth,
+            balanced extraction with reduced acidity.
           </li>
           {% endif %}
         </ul>
