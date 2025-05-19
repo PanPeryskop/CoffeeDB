@@ -19,8 +19,9 @@ GEOCODING_HEADERS = {
 
 def get_auth_headers():
     token = session.get('jwt_token')
+    print(token)
     if token:
-        return {'Authentication': f'Bearer {token}'}
+        return {'Authorization': f'Bearer {token}'}
     return {}
 
 def geocode_address(address, city="", country=""):
