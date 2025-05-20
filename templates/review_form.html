@@ -9,7 +9,7 @@
 </div>
 
 <div class="form-container fade-in">
-    <form method="POST" class="detailed-form">
+    <form id="review-form" method="POST" action="{{ url_for('create_review') }}" class="detailed-form">
         <div class="form-grid">
             <div class="form-group full-width">
                 <label for="review-type">What are you reviewing? <span class="required">*</span></label>
@@ -43,7 +43,6 @@
                 <div class="custom-select">
                     <select id="coffeeId" name="coffeeId" class="form-control">
                         <option value="">Select a coffee...</option>
-                        <!-- Coffee options will be loaded here -->
                     </select>
                     <div class="select-arrow"><i class="fas fa-chevron-down"></i></div>
                 </div>
@@ -55,7 +54,6 @@
                 <div class="custom-select">
                     <select id="roasteryId" name="roasteryId" class="form-control">
                         <option value="">Select a roastery...</option>
-                        <!-- Roastery options will be loaded here -->
                     </select>
                     <div class="select-arrow"><i class="fas fa-chevron-down"></i></div>
                 </div>
@@ -67,7 +65,6 @@
                 <div class="custom-select">
                     <select id="coffeeShopId" name="coffeeShopId" class="form-control">
                         <option value="">Select a coffee shop...</option>
-                        <!-- Coffee shop options will be loaded here -->
                     </select>
                     <div class="select-arrow"><i class="fas fa-chevron-down"></i></div>
                 </div>
@@ -199,35 +196,42 @@
         font-size: 0.85rem;
         margin-top: var(--spacing-xs);
     }
+
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 4px;
+        color: white;
+        font-weight: 500;
+        z-index: 1000;
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+        transition: opacity 0.3s ease;
+        opacity: 1;
+    }
+    
+    .notification.info {
+        background-color: var(--color-primary, #4e73df);
+    }
+    
+    .notification.success {
+        background-color: var(--color-success, #1cc88a);
+    }
+    
+    .notification.error {
+        background-color: var(--color-danger, #e74a3b);
+    }
+    
+    .notification.warning {
+        background-color: var(--color-warning, #f6c23e);
+    }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Dodajemy element script do załadowania danych z JSONP
-        function loadJSONP(url, callback) {
-            const script = document.createElement('script');
-            const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
-            
-            window[callbackName] = function(data) {
-                delete window[callbackName];
-                document.body.removeChild(script);
-                callback(data);
-            };
-            
-            // Dodajemy parametr callback do URL
-            if (url.indexOf('?') === -1) {
-                url += '?callback=' + callbackName;
-            } else {
-                url += '&callback=' + callbackName;
-            }
-            
-            script.src = url;
-            document.body.appendChild(script);
-        }
-        
-        // Elements
         const coffeeLoading = document.getElementById('coffee-loading');
         const roasteryLoading = document.getElementById('roastery-loading');
         const shopLoading = document.getElementById('shop-loading');
@@ -236,216 +240,250 @@
         const roasterySelect = document.getElementById('roasteryId');
         const shopSelect = document.getElementById('coffeeShopId');
         
-        // Użyjmy zmienną do przechowywania danych API zamiast bezpośrednich połączeń
-        // Ta zmienna symuluje odpowiedź z serwera
-        
-        // Statyczne dane dla testowania (te same, które pokazałeś w logach)
-        const coffeeData = [{"id":1,"name":"Ethiopia Yirgacheffe","roasteryId":1,"country":"Ethiopia","region":"Yirgacheffe","farm":"Yirgacheffe Cooperative","variety":"Heirloom","process":"Natural","roastProfile":"Light","flavourNotes":["berry","milk chocolate","citrus"],"description":"Classic coffee from the Yirgacheffe region with intense fruit notes and a light profile."},{"id":2,"name":"Costa Rica Tarrazu","roasteryId":1,"country":"Costa Rica","region":"Tarrazu","farm":"Finca El Quizarra","variety":"Caturra, Catuai","process":"Washed","roastProfile":"Medium","flavourNotes":["caramel","nutty","honey"],"description":"Balanced coffee with classic caramel notes and sweetness."},{"id":3,"name":"Panama Geisha","roasteryId":6,"country":"Panama","region":"Boquete","farm":"Hacienda La Esmeralda","variety":"Geisha","process":"Washed","roastProfile":"Light","flavourNotes":["jasmine","bergamot","apricot"],"description":"Exclusive Geisha variety with delicate floral and fruity notes."},{"id":4,"name":"Brazil Fazenda Rainha","roasteryId":2,"country":"Brazil","region":"Sul de Minas","farm":"Fazenda Rainha","variety":"Yellow Bourbon","process":"Natural","roastProfile":"Medium-Dark","flavourNotes":["dark chocolate","nuts","brown sugar"],"description":"Classic Brazilian coffee with a rich, chocolatey profile."},{"id":5,"name":"Colombia El Paraiso Red Plum","roasteryId":3,"country":"Colombia","region":"Cauca","farm":"El Paraiso","variety":"Castillo","process":"Anaerobic Natural","roastProfile":"Light","flavourNotes":["plum","cherry","grape"],"description":"Experimental coffee with intense red fruit notes thanks to anaerobic fermentation."},{"id":6,"name":"Kenya Nyeri AA","roasteryId":7,"country":"Kenya","region":"Nyeri","farm":"Nyeri Cooperative","variety":"SL28, SL34","process":"Washed","roastProfile":"Light","flavourNotes":["blackcurrant","grapefruit","cane sugar"],"description":"Classic Kenyan coffee with characteristic acidity and citrus notes."},{"id":7,"name":"Rwanda Huye Mountain","roasteryId":8,"country":"Rwanda","region":"Southern Province","farm":"Huye Mountain Station","variety":"Red Bourbon","process":"Washed","roastProfile":"Light-Medium","flavourNotes":["red apple","black tea","orange"],"description":"Elegant coffee with balanced acidity and fruity sweetness."},{"id":8,"name":"Guatemala Antigua","roasteryId":5,"country":"Guatemala","region":"Antigua","farm":"Finca La Hermosa","variety":"Bourbon, Caturra","process":"Washed","roastProfile":"Medium","flavourNotes":["chocolate","apricot","caramel"],"description":"Classic Guatemalan coffee with a chocolate base and fruity sweetness."},{"id":9,"name":"Ethiopia Sidamo Guji","roasteryId":4,"country":"Ethiopia","region":"Guji","farm":"Guji Cooperative","variety":"Heirloom","process":"Natural","roastProfile":"Light","flavourNotes":["strawberry","peach","orange blossom"],"description":"Intense Ethiopian coffee with distinct strawberry and floral notes."},{"id":10,"name":"Burundi Kayanza","roasteryId":3,"country":"Burundi","region":"Kayanza","farm":"Bukeye Station","variety":"Bourbon","process":"Washed","roastProfile":"Light","flavourNotes":["red currant","bergamot","gooseberry"],"description":"Light roasted coffee with vibrant acidity and fruit clarity."},{"id":11,"name":"Honduras Marcala","roasteryId":2,"country":"Honduras","region":"Marcala","farm":"Finca El Puente","variety":"Catuai","process":"Honey","roastProfile":"Medium","flavourNotes":["honey","peach","milk chocolate"],"description":"Sweet coffee with a velvety body and honey sweetness thanks to the honey process."},{"id":12,"name":"Peru Cajamarca","roasteryId":1,"country":"Peru","region":"Cajamarca","farm":"Sol y Cafe Cooperative","variety":"Caturra, Typica","process":"Washed","roastProfile":"Medium","flavourNotes":["caramel","hazelnut","apple"],"description":"Balanced coffee with a creamy body and subtle sweetness."}];
-        
-        // Przykładowe dane dla palarni
-        const roasteryData = [
-            {"id": 1, "name": "Coffee Roasters Co.", "country": "Poland", "city": "Warsaw"},
-            {"id": 2, "name": "Mountain Bean Roastery", "country": "USA", "city": "Seattle"},
-            {"id": 3, "name": "Urban Coffee Works", "country": "Germany", "city": "Berlin"}
-        ];
-        
-        // Przykładowe dane dla kawiarni
-        const shopData = [
-            {"id": 1, "name": "Coffee Corner", "country": "Poland", "city": "Krakow"},
-            {"id": 2, "name": "Espresso Bar", "country": "Italy", "city": "Rome"},
-            {"id": 3, "name": "Brew & Bean", "country": "UK", "city": "London"}
-        ];
-        
-        // Załaduj dane kawy
-        coffeeLoading.style.display = 'none';
-        
-        if (coffeeData.length === 0) {
-            const option = document.createElement('option');
-            option.textContent = 'No coffees available';
-            coffeeSelect.appendChild(option);
-        } else {
-            coffeeData.forEach(coffee => {
-                const option = document.createElement('option');
-                option.value = coffee.id;
-                option.textContent = coffee.name;
-                coffeeSelect.appendChild(option);
-            });
-        }
-        
-        // Załaduj dane palarni
-        roasteryLoading.style.display = 'none';
-        
-        if (roasteryData.length === 0) {
-            const option = document.createElement('option');
-            option.textContent = 'No roasteries available';
-            roasterySelect.appendChild(option);
-        } else {
-            roasteryData.forEach(roastery => {
-                const option = document.createElement('option');
-                option.value = roastery.id;
-                option.textContent = roastery.name;
-                roasterySelect.appendChild(option);
-            });
-        }
-        
-        // Załaduj dane kawiarni
-        shopLoading.style.display = 'none';
-        
-        if (shopData.length === 0) {
-            const option = document.createElement('option');
-            option.textContent = 'No coffee shops available';
-            shopSelect.appendChild(option);
-        } else {
-            shopData.forEach(shop => {
-                const option = document.createElement('option');
-                option.value = shop.id;
-                option.textContent = shop.name;
-                shopSelect.appendChild(option);
-            });
-        }
-
-        // Reszta kodu bez zmian
-        
-        // Handle review type selection
-        const typeRadios = document.querySelectorAll('input[name="review-type"]');
         const coffeeGroup = document.getElementById('coffee-select-group');
         const roasteryGroup = document.getElementById('roastery-select-group');
         const shopGroup = document.getElementById('shop-select-group');
 
-        function handleTypeChange() {
-            const selectedType = document.querySelector('input[name="review-type"]:checked').value;
-            
-            // Hide all select groups
-            coffeeGroup.classList.add('hidden');
-            roasteryGroup.classList.add('hidden');
-            shopGroup.classList.add('hidden');
-            
-            // Show the selected one
-            if (selectedType === 'coffee') {
-                coffeeGroup.classList.remove('hidden');
-            } else if (selectedType === 'roastery') {
-                roasteryGroup.classList.remove('hidden');
-            } else if (selectedType === 'shop') {
-                shopGroup.classList.remove('hidden');
-            }
-        }
-
-        typeRadios.forEach(radio => {
-            radio.addEventListener('change', handleTypeChange);
-        });
-
-        // Initialize based on default selection
-        handleTypeChange();
-
-        // Handle star rating
-        const stars = document.querySelectorAll('.rating-stars i');
+        const form = document.getElementById('review-form');
+        const submitButton = form.querySelector('button[type="submit"]');
+        
+        const reviewTypeInputs = document.querySelectorAll('input[name="review-type"]');
+        const ratingStars = document.querySelectorAll('.rating-stars i');
         const ratingValue = document.querySelector('.rating-value');
         const ratingInput = document.getElementById('rating');
-
-        stars.forEach(star => {
-            star.addEventListener('click', function() {
-                const rating = parseFloat(this.dataset.rating);
-                ratingInput.value = rating;
-                ratingValue.textContent = rating;
-                
-                // Update stars visual
-                stars.forEach(s => {
-                    const starRating = parseFloat(s.dataset.rating);
-                    if (starRating <= rating) {
-                        s.className = 'fas fa-star';
-                    } else {
-                        s.className = 'far fa-star';
-                    }
+        const reviewTextarea = document.getElementById('review');
+        const charCount = document.getElementById('char-count');
+        
+        const API_BASE = "http://srv17.mikr.us:40331";
+        
+        function loadEntities() {
+            fetch(`${API_BASE}/coffees`)
+                .then(response => response.json())
+                .then(data => {
+                    populateSelect(coffeeSelect, data, 'coffee');
+                    coffeeLoading.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error fetching coffees:', error);
+                    coffeeLoading.textContent = 'Failed to load coffees.';
                 });
-            });
-
-            star.addEventListener('mouseover', function() {
-                const rating = parseFloat(this.dataset.rating);
                 
-                // Update stars visual on hover
-                stars.forEach(s => {
-                    const starRating = parseFloat(s.dataset.rating);
-                    if (starRating <= rating) {
-                        s.className = 'fas fa-star';
-                    } else {
-                        s.className = 'far fa-star';
-                    }
+            fetch(`${API_BASE}/roasteries`)
+                .then(response => response.json())
+                .then(data => {
+                    populateSelect(roasterySelect, data, 'roastery');
+                    roasteryLoading.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error fetching roasteries:', error);
+                    roasteryLoading.textContent = 'Failed to load roasteries.';
                 });
-            });
-        });
-
-        // Reset stars to actual rating when mouse leaves the rating container
-        document.querySelector('.rating-stars').addEventListener('mouseleave', function() {
-            const rating = parseFloat(ratingInput.value);
+                
+            fetch(`${API_BASE}/shops`)
+                .then(response => response.json())
+                .then(data => {
+                    populateSelect(shopSelect, data, 'coffee shop');
+                    shopLoading.style.display = 'none';
+                })
+                .catch(error => {
+                    console.error('Error fetching coffee shops:', error);
+                    shopLoading.textContent = 'Failed to load coffee shops.';
+                });
+        }
+        
+        function populateSelect(selectElement, data, entityType) {
+            selectElement.innerHTML = `<option value="">Select a ${entityType}...</option>`;
             
-            stars.forEach(s => {
-                const starRating = parseFloat(s.dataset.rating);
-                if (starRating <= rating) {
-                    s.className = 'fas fa-star';
-                } else {
-                    s.className = 'far fa-star';
+            if (data && data.length > 0) {
+                data.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = item.id;
+                    option.textContent = item.name;
+                    selectElement.appendChild(option);
+                });
+            } else {
+                const option = document.createElement('option');
+                option.disabled = true;
+                option.textContent = `No ${entityType}s available`;
+                selectElement.appendChild(option);
+            }
+        }
+        
+        reviewTypeInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                coffeeGroup.classList.add('hidden');
+                roasteryGroup.classList.add('hidden');
+                shopGroup.classList.add('hidden');
+                
+                switch(this.value) {
+                    case 'coffee':
+                        coffeeGroup.classList.remove('hidden');
+                        break;
+                    case 'roastery':
+                        roasteryGroup.classList.remove('hidden');
+                        break;
+                    case 'shop':
+                        shopGroup.classList.remove('hidden');
+                        break;
                 }
             });
         });
-
-        // Character counter for review textarea
-        const reviewTextarea = document.getElementById('review');
-        const charCount = document.getElementById('char-count');
-        const charMax = document.getElementById('char-max');
-        const maxLength = 500;
-
-        charMax.textContent = maxLength;
-
-        reviewTextarea.addEventListener('input', function() {
-            const currentLength = this.value.length;
-            charCount.textContent = currentLength;
+        
+        ratingStars.forEach(star => {
+            star.addEventListener('click', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                updateRating(rating);
+            });
             
-            if (currentLength > maxLength) {
-                charCount.classList.add('text-danger');
-            } else {
-                charCount.classList.remove('text-danger');
+            star.addEventListener('mouseover', function() {
+                const rating = parseInt(this.getAttribute('data-rating'));
+                highlightStars(rating);
+            });
+            
+            star.addEventListener('mouseout', function() {
+                const currentRating = parseInt(ratingInput.value);
+                highlightStars(currentRating);
+            });
+        });
+        
+        function updateRating(rating) {
+            ratingInput.value = rating;
+            ratingValue.textContent = rating;
+            highlightStars(rating);
+        }
+        
+        function highlightStars(rating) {
+            ratingStars.forEach((star, index) => {
+                if (index < rating) {
+                    star.className = 'fas fa-star';
+                } else {
+                    star.className = 'far fa-star';
+                }
+            });
+        }
+        
+        reviewTextarea.addEventListener('input', function() {
+            const count = this.value.length;
+            charCount.textContent = count;
+            
+            if (count > 500) {
+                this.value = this.value.substring(0, 500);
+                charCount.textContent = 500;
             }
         });
-
-        // Form submission
-        document.querySelector('form').addEventListener('submit', function(e) {
+        
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
             
             const selectedType = document.querySelector('input[name="review-type"]:checked').value;
-            const rating = parseFloat(ratingInput.value);
+            const rating = parseInt(ratingInput.value) || 0;
             const review = reviewTextarea.value.trim();
             
-            // Validate inputs
             if (rating === 0) {
-                alert('Please provide a rating');
+                showNotification('Please provide a rating', 'error');
                 return;
             }
             
             if (review.length === 0) {
-                alert('Please write a review');
+                showNotification('Please write a review', 'error');
                 return;
             }
             
-            // Check if a selection was made
-            if (selectedType === 'coffee' && coffeeSelect.value === '') {
-                alert('Please select a coffee');
-                return;
-            } else if (selectedType === 'roastery' && roasterySelect.value === '') {
-                alert('Please select a roastery');
-                return;
-            } else if (selectedType === 'shop' && shopSelect.value === '') {
-                alert('Please select a coffee shop');
-                return;
+            let formData = new FormData(form);
+            
+            // Clear hidden fields that aren't needed based on the selected type
+            if (selectedType !== 'coffee') {
+                formData.delete('coffeeId');
             }
             
-            // Set the appropriate ID based on type and clear others
-            coffeeSelect.disabled = selectedType !== 'coffee';
-            roasterySelect.disabled = selectedType !== 'roastery';
-            shopSelect.disabled = selectedType !== 'shop';
+            if (selectedType !== 'roastery') {
+                formData.delete('roasteryId');
+            }
             
-            // Submit the form
-            this.submit();
+            if (selectedType !== 'shop') {
+                formData.delete('coffeeShopId');
+            }
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            
+            // Use traditional form POST approach which is more reliable
+            // and avoids CORS issues that can happen with fetch API
+            form.submit();
         });
+        
+        function showNotification(message, type = 'info') {
+            let notification = document.querySelector('.notification');
+            if (!notification) {
+                notification = document.createElement('div');
+                notification.className = 'notification';
+                document.body.appendChild(notification);
+            }
+            
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 300);
+            }, 3000);
+        }
+        
+        loadEntities();
+        
+        const searchParams = new URLSearchParams(window.location.search);
+        
+        if (searchParams.has('coffeeId')) {
+            const coffeeId = searchParams.get('coffeeId');
+            document.getElementById('coffee-type').checked = true;
+            coffeeGroup.classList.remove('hidden');
+            roasteryGroup.classList.add('hidden');
+            shopGroup.classList.add('hidden');
+            
+            const checkSelectOption = setInterval(() => {
+                if (coffeeSelect.options.length > 1) {
+                    coffeeSelect.value = coffeeId;
+                    clearInterval(checkSelectOption);
+                }
+            }, 100);
+        }
+        
+        if (searchParams.has('roasteryId')) {
+            const roasteryId = searchParams.get('roasteryId');
+            document.getElementById('roastery-type').checked = true;
+            coffeeGroup.classList.add('hidden');
+            roasteryGroup.classList.remove('hidden');
+            shopGroup.classList.add('hidden');
+            
+            const checkSelectOption = setInterval(() => {
+                if (roasterySelect.options.length > 1) {
+                    roasterySelect.value = roasteryId;
+                    clearInterval(checkSelectOption);
+                }
+            }, 100);
+        }
+        
+        if (searchParams.has('shopId')) {
+            const shopId = searchParams.get('shopId');
+            document.getElementById('shop-type').checked = true;
+            coffeeGroup.classList.add('hidden');
+            roasteryGroup.classList.add('hidden');
+            shopGroup.classList.remove('hidden');
+            
+            const checkSelectOption = setInterval(() => {
+                if (shopSelect.options.length > 1) {
+                    shopSelect.value = shopId;
+                    clearInterval(checkSelectOption);
+                }
+            }, 100);
+        }
     });
 </script>
+
+{% if session.get('jwt_token') %}
+<input type="hidden" id="flask-jwt-token" value="{{ session.get('jwt_token') }}">
+{% endif %}
 {% endblock %}

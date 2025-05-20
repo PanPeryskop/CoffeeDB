@@ -39,7 +39,6 @@ def geocode_address(address, city="", country=""):
     try:
         response = requests.get(GEOCODING_API, params=params, headers=GEOCODING_HEADERS)
         
-        # Respect API usage policy with a slight delay
         import time
         time.sleep(1)
         
@@ -326,21 +325,61 @@ def reviews():
 @app.route('/reviews/create', methods=['GET', 'POST'])
 def create_review():
     if request.method == 'POST':
+        selected_type = request.form.get('review-type')
         review_data = {
             "review": request.form.get('review'),
-            "rating": float(request.form.get('rating')),
-            "coffeeId": int(request.form.get('coffeeId') or 0),
-            "roasteryId": int(request.form.get('roasteryId') or 0),
-            "coffeeShopId": int(request.form.get('coffeeShopId') or 0)
+            "rating": float(request.form.get('rating') or 0)
         }
+        
+        # Set the appropriate ID field based on the selected type
+        if selected_type == 'coffee':
+            coffee_id = request.form.get('coffeeId')
+            if coffee_id:
+                review_data["coffeeId"] = int(coffee_id)
+        elif selected_type == 'roastery':
+            roastery_id = request.form.get('roasteryId')
+            if roastery_id:
+                review_data["roasteryId"] = int(roastery_id)
+        elif selected_type == 'shop':
+            shop_id = request.form.get('coffeeShopId')
+            if shop_id:
+                review_data["coffeeShopId"] = int(shop_id)
+        
         headers = get_auth_headers()
-        resp = requests.post(f"{API_BASE}/reviews", json=review_data, headers=headers)
-        if resp.ok:
-            flash("Review added")
-            return redirect(url_for('reviews'))
-        else:
-            flash("Error adding review: " + resp.text)
+        
+        try:
+            resp = requests.post(f"{API_BASE}/reviews", json=review_data, headers=headers)
+            if resp.ok:
+                flash("Review added successfully", "success")
+                return redirect(url_for('reviews'))
+            else:
+                flash(f"Error adding review: {resp.text}", "error")
+                return render_template('review_form.html')
+        except Exception as e:
+            flash(f"Error adding review: {str(e)}", "error")
+            return render_template('review_form.html')
+    
     return render_template('review_form.html')
+
+@app.route('/reviews/delete/<int:review_id>', methods=['POST'])
+def delete_review(review_id):
+    token = request.form.get('token') or session.get('jwt_token')
+    if not token:
+        flash("Authentication required", "error")
+        return redirect(url_for('reviews'))
+    
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+    try:
+        resp = requests.delete(f"{API_BASE}/reviews/{review_id}", headers=headers)
+        if resp.ok:
+            flash("Review deleted successfully", "success")
+        else:
+            flash(f"Error deleting review: {resp.text}", "error")
+    except Exception as e:
+        flash(f"Error: {str(e)}", "error")
+    
+    return redirect(url_for('reviews'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 40330))

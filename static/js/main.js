@@ -1,6 +1,3 @@
-// Main JavaScript file for Coffee Base App
-
-// DOM Content Loaded Event
 document.addEventListener("DOMContentLoaded", function () {
   // Initialize notifications
   initNotifications();
