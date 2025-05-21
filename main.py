@@ -228,28 +228,28 @@ def roasteries():
     resp = requests.get(f"{API_BASE}/roasteries")
     roasteries_list = resp.json() if resp.ok else []
     
-    # Process each roastery to ensure it has coordinates
     for roastery in roasteries_list:
-        # Skip if coordinates already exist
         if roastery.get("lat") and roastery.get("lng"):
             continue
-            
-        # Try to geocode the address
-        address = roastery.get("address", "")
-        city = roastery.get("city", "")
-        country = roastery.get("country", "Poland")
+
+        lng = roastery.pop("lon")
+        roastery["lng"] = lng
+
+        # address = roastery.get("address", "")
+        # city = roastery.get("city", "")
+        # country = roastery.get("country", "Poland")
         
-        coordinates = None
-        if address:
-            coordinates = geocode_address(address, city, country)
+        # coordinates = None
+        # if address:
+        #     coordinates = geocode_address(address, city, country)
         
-        # If geocoding failed, use default coordinates
-        if not coordinates:
-            coordinates = get_default_coordinates(country, city)
+        # # If geocoding failed, use default coordinates
+        # if not coordinates:
+        #     coordinates = get_default_coordinates(country, city)
             
         # Update the roastery with the coordinates
-        roastery["lat"] = coordinates["lat"]
-        roastery["lng"] = coordinates["lng"]
+        # roastery["lat"] = coordinates["lat"]
+        # roastery["lng"] = coordinates["lng"]
     
     return render_template('roasteries.html', roasteries=roasteries_list)
 
@@ -291,28 +291,14 @@ def shops():
     resp = requests.get(f"{API_BASE}/shops")
     shops_list = resp.json() if resp.ok else []
     
-    # Process each shop to ensure it has coordinates
     for shop in shops_list:
-        # Skip if coordinates already exist
+
         if shop.get("lat") and shop.get("lng"):
             continue
-            
-        # Try to geocode the address
-        address = shop.get("address", "")
-        city = shop.get("city", "")
-        country = shop.get("country", "Poland")
+
+        lng = shop.pop("lon")
+        shop["lng"] = lng    
         
-        coordinates = None
-        if address:
-            coordinates = geocode_address(address, city, country)
-        
-        # If geocoding failed, use default coordinates
-        if not coordinates:
-            coordinates = get_default_coordinates(country, city)
-            
-        # Update the shop with the coordinates
-        shop["lat"] = coordinates["lat"]
-        shop["lng"] = coordinates["lng"]
     
     return render_template('shops.html', shops=shops_list)
 

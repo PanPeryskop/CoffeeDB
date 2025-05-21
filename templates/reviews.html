@@ -8,7 +8,7 @@
   <div class="search-filter">
     <div class="search-bar">
       <input type="text" id="review-search" placeholder="Search reviews..." />
-      <i class="fas fa-search"></i>
+      <!-- <i class="fas fa-search"></i> -->
     </div>
     <div class="filter-dropdown">
       <button class="filter-btn"><i class="fas fa-filter"></i> Filter</button>
@@ -487,6 +487,10 @@
     animation: fadeIn 0.5s ease forwards;
     opacity: 0;
   }
+
+  .filter-content.show {
+    display: block !important;
+  }
 </style>
 
 <script>
@@ -496,18 +500,26 @@
     const loadingIndicator = document.getElementById("loading-indicator");
     const reviewsList = document.getElementById("reviews-list");
     const emptyState = document.getElementById("empty-state");
+    
+    // Cache DOM selectors that will be used multiple times
+    const filterBtn = document.querySelector(".filter-btn");
+    const filterContent = document.querySelector(".filter-content");
 
     if (reviewsList) reviewsList.style.display = "none";
     if (loadingIndicator) loadingIndicator.style.display = "flex";
 
+    // Pre-initialized data stores
     let reviewsData = [];
     let coffeeData = {};
     let roasteryData = {};
     let shopData = {};
+    
+    // Cache for optimized filtering
+    let reviewCardCache = [];
 
+    // Auth token handling
     const flaskTokenElement = document.getElementById('flask-jwt-token');
     const flaskToken = flaskTokenElement ? flaskTokenElement.value : null;
-    
     window.Flask_JWT_Token = flaskToken || '{{ session.get("jwt_token", "") }}';
 
     async function fetchAllData() {
@@ -519,6 +531,7 @@
         
         reviewsData = await reviewsResponse.json();
         
+        // Fetch all entity types in parallel for performance
         await Promise.all([
           fetchEntities('coffees'),
           fetchEntities('roasteries'),
@@ -527,6 +540,7 @@
         
         renderReviews(reviewsData);
         initializeFilters();
+        setupFilterDropdownBehavior();
       } catch (error) {
         console.error("Error fetching data:", error);
         showError("Failed to load reviews data. Please try again later.");
@@ -546,11 +560,12 @@
         
         const entities = await response.json();
         
-        const dataStore = {};
-        entities.forEach(entity => {
-          dataStore[entity.id] = entity;
-        });
+        // Create optimized lookup object
+        const dataStore = Object.fromEntries(
+          entities.map(entity => [entity.id, entity])
+        );
         
+        // Store in the appropriate data store
         if (entityType === 'coffees') {
           coffeeData = dataStore;
         } else if (entityType === 'roasteries') {
@@ -636,8 +651,11 @@
       reviewsList.style.display = "flex";
       if (emptyState) emptyState.style.display = "none";
       
-      reviewsList.innerHTML = '';
+      // Optimize by using document fragment to minimize repaints
+      const fragment = document.createDocumentFragment();
+      reviewCardCache = []; // Reset cache
       
+      // Create all review elements at once
       reviews.forEach((review, index) => {
         const subject = getReviewSubject(review);
         
@@ -645,7 +663,7 @@
         reviewElement.className = 'review-card fade-in';
         reviewElement.dataset.rating = review.rating;
         reviewElement.dataset.type = subject.type;
-        reviewElement.style.animationDelay = `${index * 0.1}s`;
+        reviewElement.style.animationDelay = `${Math.min(index * 0.05, 1.5)}s`; // Cap the delay
         
         const avatarLetter = review.username && review.username.length > 0 
           ? review.username[0].toUpperCase() 
@@ -653,6 +671,13 @@
           
         const formattedDate = formatDate(review.createdAt);
         const starsHtml = generateStars(review.rating);
+        
+        // Pre-cache searchable text for filtering
+        const searchableText = [
+          review.review || '',
+          subject.name || '',
+          review.username || ''
+        ].join(' ').toLowerCase();
         
         reviewElement.innerHTML = `
           <div class="review-header">
@@ -698,8 +723,20 @@
           </div>
         `;
         
-        reviewsList.appendChild(reviewElement);
+        // Cache review element properties for fast filtering
+        reviewCardCache.push({
+          element: reviewElement,
+          rating: review.rating,
+          type: subject.type,
+          text: searchableText
+        });
+        
+        fragment.appendChild(reviewElement);
       });
+      
+      // Clear and append all at once to minimize DOM operations
+      reviewsList.innerHTML = '';
+      reviewsList.appendChild(fragment);
       
       attachEventListeners();
     }
@@ -819,45 +856,94 @@
       }, 3000);
     }
     
-    function initializeFilters() {
-      const minRating = document.getElementById('min-rating');
-      const minRatingValue = document.getElementById('min-rating-value');
-      
-      if (minRating && minRatingValue) {
-        minRating.addEventListener('input', function() {
-          minRatingValue.textContent = this.value;
-        });
-        
-        minRating.addEventListener('change', filterReviews);
-      }
-      
-      const typeCheckboxes = document.querySelectorAll('input[data-filter-type="type"]');
-      typeCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', filterReviews);
-      });
-      
-      const searchInput = document.getElementById('review-search');
-      if (searchInput) {
-        searchInput.addEventListener('input', debounce(filterReviews, 300));
-      }
-      
-      const searchIcon = document.querySelector('.search-bar i');
-      if (searchIcon) {
-        searchIcon.addEventListener('click', filterReviews);
-      }
-    }
-    
-    function debounce(func, delay) {
+    // Enhanced debounce with immediate option
+    function debounce(func, delay, immediate = false) {
       let timeout;
       return function() {
         const context = this;
         const args = arguments;
+        
+        const later = function() {
+          timeout = null;
+          if (!immediate) func.apply(context, args);
+        };
+        
+        const callNow = immediate && !timeout;
         clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(context, args), delay);
+        timeout = setTimeout(later, delay);
+        
+        if (callNow) func.apply(context, args);
       };
     }
     
+    // Throttle function to limit execution frequency
+    function throttle(func, limit) {
+      let lastCall = 0;
+      return function(...args) {
+        const now = Date.now();
+        if (now - lastCall >= limit) {
+          lastCall = now;
+          return func.apply(this, args);
+        }
+      };
+    }
+    
+    function setupFilterDropdownBehavior() {
+      if (filterBtn && filterContent) {
+        // Use click instead of hover for better mobile performance
+        filterBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          filterContent.classList.toggle('show');
+        });
+        
+        // Close dropdown when clicking elsewhere
+        document.addEventListener('click', (e) => {
+          if (filterContent.classList.contains('show') && 
+              !filterContent.contains(e.target) && 
+              e.target !== filterBtn) {
+            filterContent.classList.remove('show');
+          }
+        });
+      }
+    }
+    
+    function initializeFilters() {
+      const minRating = document.getElementById("min-rating");
+      const minRatingValue = document.getElementById("min-rating-value");
+      
+      if (minRating && minRatingValue) {
+        // Update the display value immediately but throttle the filtering
+        minRating.addEventListener('input', () => {
+          minRatingValue.textContent = minRating.value;
+        }, { passive: true });
+        
+        // Throttle the actual filtering when dragging the slider
+        minRating.addEventListener('input', throttle(() => {
+          requestAnimationFrame(filterReviews);
+        }, 100), { passive: true });
+        
+        // Ensure filtering happens when user releases the slider
+        minRating.addEventListener('change', () => {
+          requestAnimationFrame(filterReviews);
+        }, { passive: true });
+      }
+      
+      const typeCheckboxes = document.querySelectorAll('input[data-filter-type="type"]');
+      typeCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => requestAnimationFrame(filterReviews), { passive: true });
+      });
+      
+      const searchInput = document.getElementById('review-search');
+      if (searchInput) {
+        searchInput.addEventListener('input', debounce(() => {
+          requestAnimationFrame(filterReviews);
+        }, 300), { passive: true });
+      }
+    }
+    
     function filterReviews() {
+      // Get filter criteria once, outside the loop
       const searchInput = document.getElementById('review-search');
       const minRating = document.getElementById('min-rating');
       const searchText = searchInput ? searchInput.value.toLowerCase().trim() : '';
@@ -867,48 +953,38 @@
         document.querySelectorAll('input[data-filter-type="type"]:checked')
       ).map(cb => cb.value);
       
+      // Process search terms only once
       const searchTerms = searchText.split(/\s+/).filter(term => term.length > 0);
       
-      const reviewCards = document.querySelectorAll('.review-card');
       let visibleCount = 0;
       
-      document.body.classList.add('filtering');
+      // Use batch processing with window.requestAnimationFrame for smooth UI
+      const operations = [];
       
-      reviewCards.forEach(card => {
-        const rating = parseFloat(card.dataset.rating) || 0;
-        const type = card.dataset.type || 'other';
-        
-        const contentElement = card.querySelector('.review-content p');
-        const subjectElement = card.querySelector('.review-subject');
-        const userElement = card.querySelector('.review-user');
-        
-        const content = contentElement ? contentElement.textContent.toLowerCase() : '';
-        const subject = subjectElement ? subjectElement.textContent.toLowerCase() : '';
-        const user = userElement ? userElement.textContent.toLowerCase() : '';
-        
-        const allText = `${content} ${subject} ${user}`;
-        
-        const matchesRating = rating >= minRatingVal;
-        const matchesType = selectedTypes.includes(type);
+      // First pass - determine visibility without DOM manipulation
+      reviewCardCache.forEach(item => {
+        const matchesRating = item.rating >= minRatingVal;
+        const matchesType = selectedTypes.includes(item.type);
         
         let matchesSearch = true;
         if (searchTerms.length > 0) {
-          matchesSearch = searchTerms.every(term => allText.includes(term));
+          matchesSearch = searchTerms.every(term => item.text.includes(term));
         }
         
-        if (matchesRating && matchesType && matchesSearch) {
-          card.style.display = 'flex';
-          visibleCount++;
-        } else {
-          card.style.display = 'none';
-        }
+        const isVisible = matchesRating && matchesType && matchesSearch;
+        
+        // Queue the DOM update
+        operations.push(() => {
+          item.element.style.display = isVisible ? 'flex' : 'none';
+          if (isVisible) visibleCount++;
+        });
       });
       
-      setTimeout(() => {
-        document.body.classList.remove('filtering');
-      }, 300);
-      
-      handleNoResults(visibleCount, reviewCards.length);
+      // Apply all visibility changes in a single animation frame
+      requestAnimationFrame(() => {
+        operations.forEach(op => op());
+        handleNoResults(visibleCount, reviewCardCache.length);
+      });
     }
     
     function handleNoResults(visibleCount, totalCount) {
@@ -926,7 +1002,7 @@
             </div>
             <h3>No matching reviews</h3>
             <p>Try adjusting your filters or search criteria.</p>
-            <button class="btn btn-secondary" id="reset-filters">
+            <button class="btn btn-primary" id="reset-filters">
               Reset filters
             </button>
           `;
@@ -957,13 +1033,14 @@
         checkbox.checked = true;
       });
       
-      filterReviews();
+      // Use requestAnimationFrame for smoother UI update
+      requestAnimationFrame(filterReviews);
     }
     
+    // Start data loading
     fetchAllData();
   });
 </script>
-
 {% if session.get('jwt_token') %}
 <input type="hidden" id="flask-jwt-token" value="{{ session.get('jwt_token') }}">
 {% endif %}
