@@ -139,22 +139,21 @@ def roasteries():
         roastery["lng"] = lng
 
     return render_template('roasteries.html', roasteries=roasteries_list)
-
 @app.route('/roastery/<int:roastery_id>')
 def get_roastery(roastery_id):
     resp = requests.get(f"{API_BASE}/roasteries/{roastery_id}")
-    if resp.ok:
-        roastery = resp.json()
-        
-        coffees_resp = requests.get(f"{API_BASE}/coffees?roastery={roastery_id}")
-        roastery_coffees = coffees_resp.json() if coffees_resp.ok else []
-
-        roastery["lng"] = roastery.pop("lon")
-        
-        return render_template('roastery_detail.html', roastery=roastery, coffees=roastery_coffees)
-    else:
-        flash("Roastery not found")
+    if not resp.ok:
+        flash("Roastery not found", "error")
         return redirect(url_for('roasteries'))
+    
+    roastery = resp.json()
+    
+    coffees_resp = requests.get(f"{API_BASE}/coffees?roasteryId={roastery_id}")
+    coffees = coffees_resp.json() if coffees_resp.ok else []
+    
+    return render_template('roastery_detail.html', 
+                          roastery=roastery, 
+                          coffees=coffees)
 
 @app.route('/shops')
 def shops():
