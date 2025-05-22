@@ -294,7 +294,6 @@ content %}
 <script>
   let mapInitialized = false;
 
-  // Delayed map loading
   document.addEventListener('DOMContentLoaded', function() {
       setTimeout(initMap, 300);
   });
@@ -302,7 +301,6 @@ content %}
   function initMap() {
       if (mapInitialized) return;
       
-      // Dynamicznie ładuj Leaflet
       const leafletPromise = new Promise((resolve, reject) => {
           if (typeof L !== 'undefined') {
               resolve();
@@ -334,15 +332,12 @@ content %}
           const mapContainer = document.getElementById('map');
           const loadingElement = mapContainer.querySelector('.map-loading');
 
-          // Initialize map
           const map = L.map('map').setView([52.2297, 21.0122], 5); // Default center on Poland
 
-          // Add tile layer (OpenStreetMap)
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           }).addTo(map);
 
-          // Shop locations data
           const shops = [
               {% for shop in shops %}
               {
@@ -384,7 +379,6 @@ content %}
               marker.shopData = shop;
           });
 
-          // Fit map to show all markers
           try {
               const bounds = markersLayer.getBounds();
               if (bounds.isValid()) {
@@ -394,12 +388,10 @@ content %}
               console.log("No valid bounds found, using default view");
           }
 
-          // Hide loading indicator
           if (loadingElement) {
               loadingElement.style.display = 'none';
           }
 
-          // Search functionality
           const searchInput = document.getElementById('shop-search');
           const shopCards = document.querySelectorAll('.shop-card');
 
@@ -419,7 +411,6 @@ content %}
                   }
               });
 
-              // Also filter markers on the map
               markersLayer.clearLayers();
 
               shops.filter(shop => {
@@ -429,7 +420,6 @@ content %}
               }).forEach(shop => {
                   const marker = L.marker([shop.lat, shop.lng]).addTo(markersLayer);
 
-                  // Fixed star rating display
                   const stars = Math.max(0, Math.min(5, Math.floor(shop.rating || 0)));
                   const emptyStars = Math.max(0, 5 - stars);
                   
@@ -447,7 +437,6 @@ content %}
                   marker.bindPopup(popupContent);
               });
               
-              // Update map bounds after filtering
               try {
                   const bounds = markersLayer.getBounds();
                   if (bounds.isValid()) {
@@ -458,14 +447,11 @@ content %}
               }
           });
 
-          // Add country filter functionality
           const searchBarDiv = document.querySelector('.search-bar');
 
-          // Get unique countries from shops data
           const countries = [...new Set(shops.map(shop => shop.country))].filter(Boolean);
 
           if (countries.length > 1) {
-              // Create country filter UI
               const countryFilterDiv = document.createElement('div');
               countryFilterDiv.className = 'country-filter';
 
@@ -476,43 +462,27 @@ content %}
               const dropdownDiv = document.createElement('div');
               dropdownDiv.className = 'country-filter-dropdown';
 
-              // NEON CHECKBOX CREATION FUNCTION
               function createNeonCheckbox(country, isAll = false) {
                 const label = document.createElement('label');
                 label.className = 'country-checkbox';
                 
-                // Create checkbox input
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = true;
                 checkbox.dataset.country = country;
                 
-                // Create neon checkbox structure
                 const neonCheckbox = document.createElement('div');
                 neonCheckbox.className = 'neon-checkbox__frame';
                 
-                // Create box and check container
                 const boxDiv = document.createElement('div');
                 boxDiv.className = 'neon-checkbox__box';
                 
-                // Create check container with SVG
                 const checkContainer = document.createElement('div');
                 checkContainer.className = 'neon-checkbox__check-container';
                 
-                // const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                // svg.setAttribute('viewBox', '0 0 24 24');
-                // svg.className = 'neon-checkbox__check';
-                
-                // const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                // path.setAttribute('d', 'M3,12.5l7,7L21,5');
-                // svg.appendChild(path);
-                // checkContainer.appendChild(svg);
-                
-                // Create glow element
                 const glow = document.createElement('div');
                 glow.className = 'neon-checkbox__glow';
                 
-                // Create borders
                 const borders = document.createElement('div');
                 borders.className = 'neon-checkbox__borders';
                 
@@ -521,16 +491,13 @@ content %}
                   borders.appendChild(span);
                 }
                 
-                // Add all elements to box
                 boxDiv.appendChild(checkContainer);
                 boxDiv.appendChild(glow);
                 boxDiv.appendChild(borders);
                 
-                // Create effects container
                 const effectsDiv = document.createElement('div');
                 effectsDiv.className = 'neon-checkbox__effects';
                 
-                // Create particles
                 const particles = document.createElement('div');
                 particles.className = 'neon-checkbox__particles';
                 
@@ -539,7 +506,6 @@ content %}
                   particles.appendChild(span);
                 }
                 
-                // Create rings
                 const rings = document.createElement('div');
                 rings.className = 'neon-checkbox__rings';
                 
@@ -549,7 +515,6 @@ content %}
                   rings.appendChild(ring);
                 }
                 
-                // Create sparks
                 const sparks = document.createElement('div');
                 sparks.className = 'neon-checkbox__sparks';
                 
@@ -558,16 +523,13 @@ content %}
                   sparks.appendChild(span);
                 }
                 
-                // Add all effects
                 effectsDiv.appendChild(particles);
                 effectsDiv.appendChild(rings);
                 effectsDiv.appendChild(sparks);
                 
-                // Assemble the neon checkbox
                 neonCheckbox.appendChild(boxDiv);
                 neonCheckbox.appendChild(effectsDiv);
                 
-                // Add all to label
                 label.appendChild(checkbox);
                 label.appendChild(neonCheckbox);
                 label.appendChild(document.createTextNode(isAll ? 'All countries' : (country || 'Unknown')));
@@ -575,12 +537,10 @@ content %}
                 return label;
               }
 
-              // Add "All countries" checkbox
               const allCountriesLabel = createNeonCheckbox('all', true);
               const allCountriesCheckbox = allCountriesLabel.querySelector('input[type="checkbox"]');
               dropdownDiv.appendChild(allCountriesLabel);
               
-              // Add checkbox for each country
               countries.forEach(country => {
                 const label = createNeonCheckbox(country);
                 dropdownDiv.appendChild(label);
@@ -590,56 +550,45 @@ content %}
               countryFilterDiv.appendChild(dropdownDiv);
               searchBarDiv.after(countryFilterDiv);
 
-              // Toggle dropdown
               filterBtn.addEventListener('click', function(e) {
                   e.preventDefault();
                   e.stopPropagation();
                   dropdownDiv.classList.toggle('show');
               });
 
-              // Close dropdown when clicking outside
               document.addEventListener('click', function(event) {
                   if (!countryFilterDiv.contains(event.target)) {
                       dropdownDiv.classList.remove('show');
                   }
               });
 
-              // Handle "All countries" checkbox
               allCountriesCheckbox.addEventListener('change', function() {
                   const checked = this.checked;
 
-                  // Update all other checkboxes
                   dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])').forEach(cb => {
                       cb.checked = checked;
                   });
 
-                  // Apply filter
                   applyCountryFilter();
               });
 
-              // Handle individual country checkboxes
               dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])').forEach(checkbox => {
                   checkbox.addEventListener('change', function() {
-                      // Check if all country checkboxes are checked
                       const allChecked = Array.from(
                           dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])')
                       ).every(cb => cb.checked);
 
-                      // Update "All countries" checkbox
                       allCountriesCheckbox.checked = allChecked;
 
-                      // Apply filter
                       applyCountryFilter();
                   });
               });
 
               function applyCountryFilter() {
-                  // Get selected countries
                   const selectedCountries = Array.from(
                       dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"]):checked')
                   ).map(cb => cb.dataset.country);
 
-                  // Filter shop cards
                   shopCards.forEach(card => {
                       const country = card.dataset.country;
                       const matchesCountry = selectedCountries.includes(country);
@@ -651,7 +600,6 @@ content %}
                       }
                   });
 
-                  // Filter map markers
                   markersLayer.clearLayers();
 
                   shops.filter(shop => {
@@ -659,7 +607,6 @@ content %}
                   }).forEach(shop => {
                       const marker = L.marker([shop.lat, shop.lng]).addTo(markersLayer);
 
-                      // Fixed star rating display
                       const stars = Math.max(0, Math.min(5, Math.floor(shop.rating || 0)));
                       const emptyStars = Math.max(0, 5 - stars);
                       
@@ -677,7 +624,6 @@ content %}
                       marker.bindPopup(popupContent);
                   });
 
-                  // Update map bounds
                   try {
                       const bounds = markersLayer.getBounds();
                       if (bounds.isValid()) {

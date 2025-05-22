@@ -24,81 +24,6 @@ def get_auth_headers():
         return {'Authorization': f'Bearer {token}'}
     return {}
 
-def geocode_address(address, city="", country=""):
-    """Get coordinates for an address using the Nominatim API"""
-    # Combine address components
-    full_address = f"{address}, {city}, {country}" if city and country else address
-    
-    # Query parameters
-    params = {
-        "q": full_address,
-        "format": "json",
-        "limit": 1
-    }
-    
-    try:
-        response = requests.get(GEOCODING_API, params=params, headers=GEOCODING_HEADERS)
-        
-        import time
-        time.sleep(1)
-        
-        if response.status_code == 200 and response.json():
-            location = response.json()[0]
-            return {
-                "lat": float(location["lat"]),
-                "lng": float(location["lon"])
-            }
-    except Exception as e:
-        print(f"Geocoding error: {e}")
-    
-    # Return default coordinates if geocoding fails
-    return None
-
-# Default coordinates by country for fallback
-def get_default_coordinates(country, city=None):
-    default_coords = {
-        "Poland": {"lat": 52.2297, "lng": 21.0122},
-        "Germany": {"lat": 52.5200, "lng": 13.4050},
-        "Italy": {"lat": 41.9028, "lng": 12.4964},
-        "France": {"lat": 48.8566, "lng": 2.3522},
-        "Spain": {"lat": 40.4168, "lng": -3.7038},
-        "USA": {"lat": 37.7749, "lng": -122.4194},
-        "UK": {"lat": 51.5074, "lng": 0.1278},
-        "Netherlands": {"lat": 52.3676, "lng": 4.9041},
-        "Denmark": {"lat": 55.6761, "lng": 12.5683},
-        "Sweden": {"lat": 59.3293, "lng": 18.0686},
-        "Canada": {"lat": 43.6532, "lng": -79.3832},
-        "Australia": {"lat": -33.8688, "lng": 151.2093}
-    }
-    
-    # Polish cities for more precise fallbacks
-    polish_cities = {
-        "Warsaw": {"lat": 52.2297, "lng": 21.0122},
-        "Krakow": {"lat": 50.0647, "lng": 19.9450},
-        "Wroclaw": {"lat": 51.1079, "lng": 17.0385},
-        "Poznan": {"lat": 52.4064, "lng": 16.9252},
-        "Gdansk": {"lat": 54.3520, "lng": 18.6466},
-        "Lodz": {"lat": 51.7592, "lng": 19.4560},
-        "Szczecin": {"lat": 53.4285, "lng": 14.5528},
-        "Katowice": {"lat": 50.2649, "lng": 19.0238},
-        "Lublin": {"lat": 51.2465, "lng": 22.5684}
-    }
-    
-    # Check if we have city-specific coordinates (for Poland)
-    if country == "Poland" and city in polish_cities:
-        base_coords = polish_cities[city]
-    # Otherwise use country coordinates
-    elif country in default_coords:
-        base_coords = default_coords[country]
-    # Default to Poland
-    else:
-        base_coords = default_coords["Poland"]
-    
-    # Add small random offset to avoid overlapping markers
-    return {
-        "lat": base_coords["lat"] + (random.random() - 0.5) * 0.05,
-        "lng": base_coords["lng"] + (random.random() - 0.5) * 0.05
-    }
 
 @app.route('/')
 def index():
@@ -154,7 +79,6 @@ def get_coffee(coffee_id):
     if resp.ok:
         coffee = resp.json()
         
-        # Pobierz informacje o palarni, jeśli coffee ma roasteryId
         if coffee.get('roasteryId'):
             roastery_resp = requests.get(f"{API_BASE}/roasteries/{coffee['roasteryId']}")
             if roastery_resp.ok:
@@ -195,28 +119,7 @@ def get_shop(shop_id):
     resp = requests.get(f"{API_BASE}/shops/{shop_id}")
     if resp.ok:
         shop = resp.json()
-        
-        # Add coordinates if they don't exist (for map display)
-        if not (shop.get("lat") and shop.get("lng")):
-            address = shop.get("address", "")
-            city = shop.get("city", "")
-            country = shop.get("country", "")
-            
-            coordinates = None
-            if address and (city or country):
-                coordinates = geocode_address(f"{address}, {city}, {country}")
-            
-            # If geocoding failed or no address, use default coordinates
-            if not coordinates:
-                if city or country:
-                    coordinates = get_default_coordinates(country, city)
-                else:
-                    # Default to Warsaw coordinates if no address info
-                    coordinates = {"lat": 52.2297, "lng": 21.0122}
-                
-            # Update the shop with coordinates
-            shop["lat"] = coordinates["lat"]
-            shop["lng"] = coordinates["lng"]
+        shop["lng"] = shop.pop("lon")
         
         return render_template('shop_details.html', shop=shop)
     else:
@@ -235,22 +138,6 @@ def roasteries():
         lng = roastery.pop("lon")
         roastery["lng"] = lng
 
-        # address = roastery.get("address", "")
-        # city = roastery.get("city", "")
-        # country = roastery.get("country", "Poland")
-        
-        # coordinates = None
-        # if address:
-        #     coordinates = geocode_address(address, city, country)
-        
-        # # If geocoding failed, use default coordinates
-        # if not coordinates:
-        #     coordinates = get_default_coordinates(country, city)
-            
-        # Update the roastery with the coordinates
-        # roastery["lat"] = coordinates["lat"]
-        # roastery["lng"] = coordinates["lng"]
-    
     return render_template('roasteries.html', roasteries=roasteries_list)
 
 @app.route('/roastery/<int:roastery_id>')
@@ -259,27 +146,10 @@ def get_roastery(roastery_id):
     if resp.ok:
         roastery = resp.json()
         
-        # Pobierz kawy z tej palarni
         coffees_resp = requests.get(f"{API_BASE}/coffees?roastery={roastery_id}")
         roastery_coffees = coffees_resp.json() if coffees_resp.ok else []
-        
-        # Dodaj współrzędne jeśli ich nie ma
-        if not (roastery.get("lat") and roastery.get("lng")):
-            address = roastery.get("address", "")
-            city = roastery.get("city", "")
-            country = roastery.get("country", "Poland")
-            
-            coordinates = None
-            if address:
-                coordinates = geocode_address(address, city, country)
-            
-            # Jeśli geokodowanie nie powiodło się, użyj domyślnych współrzędnych
-            if not coordinates:
-                coordinates = get_default_coordinates(country, city)
-                
-            # Zaktualizuj palarnię współrzędnymi
-            roastery["lat"] = coordinates["lat"]
-            roastery["lng"] = coordinates["lng"]
+
+        roastery["lng"] = roastery.pop("lon")
         
         return render_template('roastery_detail.html', roastery=roastery, coffees=roastery_coffees)
     else:
@@ -317,7 +187,6 @@ def create_review():
             "rating": float(request.form.get('rating') or 0)
         }
         
-        # Set the appropriate ID field based on the selected type
         if selected_type == 'coffee':
             coffee_id = request.form.get('coffeeId')
             if coffee_id:
