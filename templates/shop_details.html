@@ -20,7 +20,7 @@
     </span>
     {% if shop.avgRating %}
     <span class="shop-rating">
-      <i class="fas fa-star"></i> {{ "%.1f"|format(shop.avgRating) }}/10
+      <i class="fas fa-star"></i> {{ "%.1f"|format(shop.avgRating) }}
     </span>
     {% endif %}
   </div>
@@ -71,13 +71,58 @@
       </div>
       {% endif %}
     </div>
-
     <div class="shop-reviews fade-in delay-2">
       <h2>Reviews for {{ shop.name }}</h2>
       <div id="shop-reviews-container">
-        <div class="loading-spinner">
-          <i class="fas fa-spinner fa-spin"></i> Loading reviews...
-        </div>
+        {% if reviews %}
+          <div class="reviews-list">
+            {% for review in reviews|sort(attribute='dateOfCreation', reverse=True) %}
+              <div class="review-card">
+                <div class="review-header">
+                  <div class="review-user" data-user-id="{{ review.userId }}">
+                    <i class="fas fa-user"></i> {{ review.userName if review.userName else 'User #' ~ review.userId }}
+                  </div>
+                  <div class="review-date">{{ review.dateOfCreation|default('')|replace('T', ' ')|replace('Z', '')|truncate(10, True, '') }}</div>
+                </div>
+                <div class="review-rating">
+                  <span class="rating-value">{{ review.rating }}/5</span>
+                  <span class="rating-stars">
+                    {% for i in range(5) %}
+                      {% if i < (review.rating|int) %}
+                        <i class="fas fa-star"></i>
+                      {% elif i < review.rating %}
+                        <i class="fas fa-star-half-alt"></i>
+                      {% else %}
+                        <i class="far fa-star"></i>
+                      {% endif %}
+                    {% endfor %}
+                  </span>
+                </div>
+                <div class="review-content">
+                  <p>{{ review.review }}</p>
+                </div>
+                {% if review.userId == session.get('user_id', 0) %}
+                  <div class="review-actions">
+                    <form method="POST" action="{{ url_for('delete_review', review_id=review.id) }}">
+                      <input type="hidden" name="token" value="{{ session.get('jwt_token', '') }}">
+                      <button type="submit" class="btn-delete" onclick="return confirm('Are you sure you want to delete this review?')">
+                        <i class="fas fa-trash"></i> Delete
+                      </button>
+                    </form>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <div class="empty-icon">
+              <i class="fas fa-comment-slash"></i>
+            </div>
+            <h3>No reviews yet</h3>
+            <p>Be the first to review this coffee shop!</p>
+          </div>
+        {% endif %}
       </div>
       
       <div class="add-review-section">
@@ -173,297 +218,279 @@
       });
   }
 
-  // Load reviews function
-  function loadReviews() {
-    fetch('/reviews?shopId={{ shop.id }}')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      })
-      .then(reviews => {
-        const reviewsContainer = document.getElementById('shop-reviews-container');
-        reviewsContainer.innerHTML = '';
-        
-        if (reviews.length === 0) {
-          reviewsContainer.innerHTML = `
-            <div class="empty-state">
-              <div class="empty-icon">
-                <i class="fas fa-comment-slash"></i>
-              </div>
-              <h3>No reviews yet</h3>
-              <p>Be the first to review this coffee shop!</p>
-            </div>
-          `;
-          return;
-        }
-        
-        // Sort reviews by date (newest first)
-        reviews.sort((a, b) => new Date(b.dateOfCreation) - new Date(a.dateOfCreation));
-        
-        const reviewsList = document.createElement('div');
-        reviewsList.className = 'reviews-list';
-        
-        reviews.forEach(review => {
-          const reviewDate = new Date(review.dateOfCreation).toLocaleDateString();
-          
-          const reviewElement = document.createElement('div');
-          reviewElement.className = 'review-card';
-          reviewElement.innerHTML = `
-            <div class="review-header">
-              <div class="review-user" data-user-id="${review.userId}">
-                <i class="fas fa-user"></i> User #${review.userId}
-              </div>
-              <div class="review-date">${reviewDate}</div>
-            </div>
-            <div class="review-rating">
-              <span class="rating-value">${review.rating}/10</span>
-              <div class="rating-stars">
-                ${generateStars(review.rating)}
-              </div>
-            </div>
-            <div class="review-content">
-              <p>${review.review || "No comment provided."}</p>
-            </div>
-          `;
-          
-          reviewsList.appendChild(reviewElement);
-        });
-        
-        reviewsContainer.appendChild(reviewsList);
-      })
-      .catch(error => {
-        console.error('Error fetching reviews:', error);
-        document.getElementById('shop-reviews-container').innerHTML = `
-          <div class="error-message">
-            <i class="fas fa-exclamation-circle"></i>
-            <p>Error loading reviews. Please try again later.</p>
-          </div>
-        `;
-      });
-  }
-  
-  // Helper function to generate star icons
-  function generateStars(rating) {
-    const fullStars = Math.floor(rating / 2);
-    const halfStar = rating % 2 >= 1 ? 1 : 0;
-    const emptyStars = 5 - fullStars - halfStar;
-    
-    let stars = '';
-    for (let i = 0; i < fullStars; i++) {
-      stars += '<i class="fas fa-star"></i>';
-    }
-    if (halfStar) {
-      stars += '<i class="fas fa-star-half-alt"></i>';
-    }
-    for (let i = 0; i < emptyStars; i++) {
-      stars += '<i class="far fa-star"></i>';
-    }
-    
-    return stars;
-  }
 
-  // Initialize map and load reviews after DOM is loaded
   document.addEventListener('DOMContentLoaded', function() {
     initMap();
-    loadReviews();
   });
 </script>
 
 <style>
-  /* Shop Detail Specific Styles */
+    /* Shop Detail Specific Styles */
   .back-link {
     margin-bottom: var(--spacing-lg);
   }
-
+  
   .back-link a {
+    color: var(--color-text-light);
+    text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    font-weight: 500;
+    gap: var(--spacing-xs);
+    transition: color var(--transition-fast);
   }
-
+  
+  .back-link a:hover {
+    color: var(--color-primary);
+  }
+  
   .shop-container {
-    max-width: 1000px;
+    max-width: 1100px; /* Match roasteries container width */
     margin: 0 auto;
   }
-
+  
   .shop-header {
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
   }
-
+  
   .shop-meta {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
     color: var(--color-text-light);
   }
-
+  
   .shop-location, .shop-rating {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
   }
-
+  
   .shop-rating {
-    color: var(--color-warning);
+    color: #ffc107; /* Match the star color in roasteries */
     font-weight: 500;
   }
-
+  
   .shop-details-card {
-    background-color: var(--color-bg-card);
+    background-color: var(--color-card); /* Use same variable as roasteries */
     border-radius: var(--border-radius-lg);
     padding: var(--spacing-lg);
     margin-bottom: var(--spacing-xl);
     box-shadow: var(--shadow-md);
   }
-
+  
   .shop-description {
     margin-bottom: var(--spacing-lg);
   }
-
+  
+  .shop-description p {
+    line-height: 1.6; /* Match roasteries line height */
+  }
+  
   .shop-info-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-lg);
   }
-
+  
   .shop-info-item {
     display: flex;
     align-items: flex-start;
     gap: var(--spacing-md);
   }
-
+  
   .shop-info-icon {
-    background-color: var(--color-primary-light);
-    color: var(--color-primary);
     width: 40px;
     height: 40px;
     border-radius: 50%;
+    background-color: var(--color-primary-light);
+    color: var(--color-primary);
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.2rem;
     flex-shrink: 0;
   }
-
+  
   .shop-info-content h3 {
     margin-top: 0;
     margin-bottom: var(--spacing-xs);
     font-size: 1rem;
   }
-
+  
   .shop-info-content p {
     margin: 0;
     color: var(--color-text-light);
   }
-
+  
   .shop-map-container {
     margin-top: var(--spacing-xl);
   }
-
-  .map-container {
-    height: 400px;
-    border-radius: var(--border-radius-md);
-    overflow: hidden;
-    position: relative;
-  }
-
-  .map-loading {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+  
+  .shop-map-container h2 {
+    margin-bottom: var(--spacing-md);
     display: flex;
     align-items: center;
-    justify-content: center;
-    background-color: var(--color-bg-card);
-    z-index: 1000;
+    gap: var(--spacing-sm);
   }
-
+  
+  .shop-map-container h2:before {
+    content: '\f3c5'; /* Font Awesome map marker icon */
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    color: var(--color-primary);
+  }
+  
+  .map-container {
+    height: 400px; /* Match roasteries map height */
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    position: relative;
+  }
+  
+  .map-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px 15px;
+    border-radius: 5px;
+    z-index: 400;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  /* Reviews styling - match with roastery_detail.html */
   .shop-reviews {
     margin-top: var(--spacing-xl);
   }
-
+  
   .reviews-list {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    margin-top: var(--spacing-md);
   }
-
+  
   .review-card {
-    background-color: var(--color-bg-card);
-    border-radius: var(--border-radius-md);
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-lg);
     padding: var(--spacing-md);
     box-shadow: var(--shadow-sm);
   }
-
+  
   .review-header {
     display: flex;
     justify-content: space-between;
     margin-bottom: var(--spacing-sm);
+  }
+  
+  .review-user {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+  }
+  
+  .review-date {
     color: var(--color-text-light);
     font-size: 0.9rem;
   }
-
+  
   .review-rating {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--color-border);
   }
-
+  
   .rating-value {
-    font-weight: bold;
+    font-weight: 600;
     font-size: 1.2rem;
   }
-
+  
   .rating-stars {
-    color: var(--color-warning);
+    color: #ffc107;
   }
-
+  
+  .review-content {
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  
+  .review-actions {
+    margin-top: var(--spacing-md);
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .btn-delete {
+    background: none;
+    border: none;
+    color: var(--color-danger);
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: var(--border-radius-sm);
+    transition: background-color var(--transition-fast);
+  }
+  
+  .btn-delete:hover {
+    background-color: rgba(244, 67, 54, 0.1);
+  }
+  
   .add-review-section {
     margin-top: var(--spacing-lg);
   }
-
+  
   .auth-prompt {
+    text-align: center;
     margin-bottom: var(--spacing-sm);
-    text-align: center;
     color: var(--color-text-light);
   }
-
-  .empty-state {
-    text-align: center;
-    padding: var(--spacing-xl) 0;
-    color: var(--color-text-light);
-  }
-
-  .empty-icon {
-    font-size: 2rem;
-    margin-bottom: var(--spacing-md);
-    color: var(--color-text-muted);
-  }
-
+  
   .loading-spinner {
-    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     padding: var(--spacing-xl);
     color: var(--color-text-light);
   }
-
-  .error-message {
-    text-align: center;
+  
+  .empty-state {
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-lg);
     padding: var(--spacing-xl);
-    color: var(--color-danger);
+    text-align: center;
+    color: var(--color-text-light);
   }
-
+  
+  .empty-icon {
+    font-size: 2.5rem;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .error-message {
+    color: var(--color-danger);
+    text-align: center;
+    padding: var(--spacing-lg);
+  }
+  
   /* Optimizations */
   .fade-in {
     will-change: opacity;
   }
-
+  
   @media (max-width: 768px) {
     .shop-info-grid {
       grid-template-columns: 1fr;

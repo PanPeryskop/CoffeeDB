@@ -74,35 +74,124 @@
       <div class="coffee-grid">
         {% for coffee in coffees %}
         <div class="coffee-card">
+          <div class="coffee-card-header">
+            <span class="coffee-origin">{{ coffee.country }}</span>
+            <span class="coffee-process badge-process">{{ coffee.process }}</span>
+          </div>
           <div class="coffee-card-content">
             <h3><a href="{{ url_for('get_coffee', coffee_id=coffee.id) }}">{{ coffee.name }}</a></h3>
-            <div class="coffee-card-details">
-              <span class="coffee-origin">{{ coffee.country }}</span>
-              <span class="coffee-process">{{ coffee.process }}</span>
+            <div class="coffee-card-stats">
+              {% if coffee.avgRating %}
+              <div class="coffee-rating">
+                <i class="fas fa-star"></i> {{ "%.1f"|format(coffee.avgRating) }}
+              </div>
+              {% endif %}
+              <div class="coffee-roast">
+                <i class="fas fa-fire"></i> {{ coffee.roastProfile }}
+              </div>
             </div>
             <div class="coffee-flavors">
               {% for note in coffee.flavourNotes[:3] %}
-              <span class="flavor-tag">{{ note }}</span>
+              <span class="flavor-tag flavor-color-{{ loop.index0 % 10 }}">{{ note }}</span>
               {% endfor %}
               {% if coffee.flavourNotes|length > 3 %}
-              <span class="flavor-tag">+{{ coffee.flavourNotes|length - 3 }}</span>
+              <span class="flavor-tag more-tag">+{{ coffee.flavourNotes|length - 3 }}</span>
               {% endif %}
             </div>
+          </div>
+          <div class="coffee-card-footer">
+            <a href="{{ url_for('get_coffee', coffee_id=coffee.id) }}" class="btn btn-outline btn-sm">View details</a>
           </div>
         </div>
         {% endfor %}
       </div>
       {% else %}
       <div class="no-coffees-message">
-        <p>No coffees from this roastery yet.</p>
+        <div class="empty-icon">
+          <i class="fas fa-mug-hot"></i>
+        </div>
+        <h3>No coffees yet</h3>
+        <p>This roastery doesn't have any coffees in our database yet.</p>
+        {% if session.get('jwt_token') %}
+        <a href="{{ url_for('create_coffee') }}?roasteryId={{ roastery.id }}" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Add coffee
+        </a>
+        {% endif %}
       </div>
       {% endif %}
+    </div>
+    <div class="roastery-reviews fade-in delay-3">
+      <h2>Reviews for {{ roastery.name }}</h2>
+      <div id="roastery-reviews-container">
+        {% if reviews %}
+          <div class="reviews-list">
+            {% for review in reviews|sort(attribute='dateOfCreation', reverse=True) %}
+              <div class="review-card">
+                <div class="review-header">
+                  <div class="review-user" data-user-id="{{ review.userId }}">
+                    <i class="fas fa-user"></i> {{ review.userName if review.userName else 'User #' ~ review.userId }}
+                  </div>
+                  <div class="review-date">{{ review.dateOfCreation|default('')|replace('T', ' ')|replace('Z', '')|truncate(10, True, '') }}</div>
+                </div>
+                <div class="review-rating">
+                  <span class="rating-value">{{ review.rating }}/5</span>
+                  <span class="rating-stars">
+                    {% for i in range(5) %}
+                      {% if i < (review.rating|int) %}
+                        <i class="fas fa-star"></i>
+                      {% elif i < review.rating %}
+                        <i class="fas fa-star-half-alt"></i>
+                      {% else %}
+                        <i class="far fa-star"></i>
+                      {% endif %}
+                    {% endfor %}
+                  </span>
+                </div>
+                <div class="review-content">
+                  <p>{{ review.review }}</p>
+                </div>
+                {% if review.userId == session.get('user_id', 0) %}
+                  <div class="review-actions">
+                    <form method="POST" action="{{ url_for('delete_review', review_id=review.id) }}">
+                      <input type="hidden" name="token" value="{{ session.get('jwt_token', '') }}">
+                      <button type="submit" class="btn-delete" onclick="return confirm('Are you sure you want to delete this review?')">
+                        <i class="fas fa-trash"></i> Delete
+                      </button>
+                    </form>
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <div class="empty-icon">
+              <i class="fas fa-comment-slash"></i>
+            </div>
+            <h3>No reviews yet</h3>
+            <p>Be the first to review this roastery!</p>
+          </div>
+        {% endif %}
+      </div>
+      
+      <div class="add-review-section">
+        {% if session.get('jwt_token') %}
+        <a href="{{ url_for('create_review') }}?roasteryId={{ roastery.id }}" class="btn btn-primary btn-block">
+          <i class="fas fa-star"></i> Add Review
+        </a>
+        {% else %}
+        <p class="auth-prompt">Log in to add a review.</p>
+        <a href="{{ url_for('login') }}" class="btn btn-outline btn-block">
+          <i class="fas fa-sign-in-alt"></i> Log In
+        </a>
+        {% endif %}
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-  // Store map data globally
+  
   const mapData = {
     lat: {{ roastery.lat|default(0) }},
     lng: {{ roastery.lng|default(0) }},
@@ -323,11 +412,13 @@
   }
 
   .flavor-tag {
-    background-color: var(--color-bg-accent);
-    color: var(--color-text);
-    padding: 2px 8px;
-    border-radius: var(--border-radius-sm);
-    font-size: 0.8rem;
+      padding: 3px 8px !important;
+      border-radius: var(--border-radius-sm) !important;
+      font-size: 0.8rem !important;
+      color: #000 !important; /* Black text for better contrast */
+      font-weight: 500 !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+      border: 1px solid rgba(0,0,0,0.1) !important;
   }
 
   .no-coffees-message {
@@ -365,5 +456,305 @@
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
   }
+  .coffee-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-md);
+  }
+
+  .coffee-card {
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .coffee-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .coffee-card-header {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: rgba(var(--color-primary-rgb), 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .coffee-origin {
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--color-primary);
+  }
+
+  .badge-process {
+    background-color: var(--color-background);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .coffee-card-content {
+    padding: var(--spacing-md);
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .coffee-card h3 {
+    margin-bottom: var(--spacing-xs);
+    font-size: 1.2rem;
+    line-height: 1.3;
+  }
+
+  .coffee-card h3 a {
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+  }
+
+  .coffee-card h3 a:hover {
+    color: var(--color-primary);
+  }
+
+  .coffee-card-stats {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.9rem;
+  }
+
+  .coffee-rating, .coffee-roast {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .coffee-rating i {
+    color: #ffc107;
+  }
+
+  .coffee-roast i {
+    color: #ff7043;
+  }
+
+  .coffee-flavors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-xs);
+    margin-top: auto;
+  }
+
+  .flavor-tag {
+    padding: 3px 8px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.8rem;
+    color: var(--color-text);
+  }
+
+  .flavor-color-0 { background-color: #ffab91 !important; } /* Darker orange */
+  .flavor-color-1 { background-color: #ffcc80 !important; } /* Darker amber */
+  .flavor-color-2 { background-color: #dce775 !important; } /* Darker lime */
+  .flavor-color-3 { background-color: #aed581 !important; } /* Darker light green */
+  .flavor-color-4 { background-color: #80cbc4 !important; } /* Darker teal */
+  .flavor-color-5 { background-color: #81d4fa !important; } /* Darker light blue */
+  .flavor-color-6 { background-color: #9fa8da !important; } /* Darker indigo */
+  .flavor-color-7 { background-color: #b39ddb !important; } /* Darker purple */
+  .flavor-color-8 { background-color: #f48fb1 !important; } /* Darker pink */
+  .flavor-color-9 { background-color: #bcaaa4 !important; } /* Darker brown */
+
+  .more-tag {
+      background-color: #616161 !important;
+      color: #ffffff !important; /* White text for dark background */
+  }
+
+  .coffee-card-footer {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .no-coffees-message {
+    padding: var(--spacing-xl);
+    background-color: var(--color-card);
+    border-radius: var(--border-radius-lg);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .no-coffees-message h3 {
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-text);
+  }
+
+  .no-coffees-message p {
+    margin-bottom: var(--spacing-md);
+    color: var(--color-text-light);
+  }
+
+  /* Matching shop details layout */
+  .roastery-detail-container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* Enhanced location section */
+  .roastery-map-container {
+    margin-top: var(--spacing-xl);
+  }
+
+  .roastery-map-container h2 {
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+
+  .roastery-map-container h2:before {
+    content: '\f3c5';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    color: var(--color-primary);
+  }
+
+  .map-container {
+    height: 400px; /* Increased height for better visibility */
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+  /* Reviews styling */
+.roastery-reviews {
+  margin-top: var(--spacing-xl);
+}
+
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.review-card {
+  background-color: var(--color-card);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-sm);
+}
+
+.review-user {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.review-date {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
+.review-rating {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.rating-value {
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.rating-stars {
+  color: #ffc107;
+}
+
+.review-content {
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.review-actions {
+  margin-top: var(--spacing-md);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--border-radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.btn-delete:hover {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.add-review-section {
+  margin-top: var(--spacing-lg);
+}
+
+.auth-prompt {
+  text-align: center;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text-light);
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xl);
+  color: var(--color-text-light);
+}
+
+.empty-state {
+  background-color: var(--color-card);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-light);
+}
+
+.error-message {
+  color: var(--color-danger);
+  text-align: center;
+  padding: var(--spacing-lg);
+}
 </style>
 {% endblock %}

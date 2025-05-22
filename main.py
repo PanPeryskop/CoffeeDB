@@ -121,24 +121,64 @@ def get_shop(shop_id):
         shop = resp.json()
         shop["lng"] = shop.pop("lon")
         
-        return render_template('shop_details.html', shop=shop)
+        reviews_resp = requests.get(f"{API_BASE}/reviews?coffeeShopId={shop_id}")
+        reviews = reviews_resp.json() if reviews_resp.ok else []
+        
+        return render_template('shop_details.html', shop=shop, reviews=reviews)
     else:
         flash("Coffee shop not found", "error")
         return redirect(url_for('shops'))
 
 @app.route('/roasteries')
 def roasteries():
+    import concurrent.futures
+    
     resp = requests.get(f"{API_BASE}/roasteries")
     roasteries_list = resp.json() if resp.ok else []
     
     for roastery in roasteries_list:
-        if roastery.get("lat") and roastery.get("lng"):
-            continue
-
-        lng = roastery.pop("lon")
-        roastery["lng"] = lng
-
+        if roastery.get("lat") and not roastery.get("lng"):
+            roastery["lng"] = roastery.pop("lon", 0)
+    
+    all_coffees_resp = requests.get(f"{API_BASE}/coffees")
+    all_coffees = all_coffees_resp.json() if all_coffees_resp.ok else []
+    
+    coffees_by_roastery = {}
+    for coffee in all_coffees:
+        roastery_id = coffee.get('roasteryId')
+        if roastery_id:
+            if roastery_id not in coffees_by_roastery:
+                coffees_by_roastery[roastery_id] = []
+            coffees_by_roastery[roastery_id].append(coffee)
+    
+    all_reviews_resp = requests.get(f"{API_BASE}/reviews")
+    all_reviews = all_reviews_resp.json() if all_reviews_resp.ok else []
+    
+    reviews_by_roastery = {}
+    for review in all_reviews:
+        roastery_id = review.get('roasteryId')
+        if roastery_id:
+            if roastery_id not in reviews_by_roastery:
+                reviews_by_roastery[roastery_id] = []
+            reviews_by_roastery[roastery_id].append(review)
+    
+    for roastery in roasteries_list:
+        roastery_id = roastery['id']
+        
+        roastery["coffeeCount"] = len(coffees_by_roastery.get(roastery_id, []))
+        
+        if not roastery.get("rating") and roastery.get("avgRating"):
+            roastery["rating"] = roastery["avgRating"]
+        elif not roastery.get("rating"):
+            reviews = reviews_by_roastery.get(roastery_id, [])
+            if reviews:
+                avg = sum(review.get("rating", 0) for review in reviews) / len(reviews)
+                roastery["rating"] = round(avg, 1)
+            else:
+                roastery["rating"] = 0
+    
     return render_template('roasteries.html', roasteries=roasteries_list)
+    
 @app.route('/roastery/<int:roastery_id>')
 def get_roastery(roastery_id):
     resp = requests.get(f"{API_BASE}/roasteries/{roastery_id}")
@@ -148,12 +188,21 @@ def get_roastery(roastery_id):
     
     roastery = resp.json()
     
+    if roastery.get("lat") and not roastery.get("lng"):
+        lng = roastery.pop("lon")
+        roastery["lng"] = lng
+    
     coffees_resp = requests.get(f"{API_BASE}/coffees?roasteryId={roastery_id}")
     coffees = coffees_resp.json() if coffees_resp.ok else []
     
+    reviews_resp = requests.get(f"{API_BASE}/reviews?roasteryId={roastery_id}")
+    reviews = reviews_resp.json() if reviews_resp.ok else []
+
+    
     return render_template('roastery_detail.html', 
                           roastery=roastery, 
-                          coffees=coffees)
+                          coffees=coffees,
+                          reviews=reviews)
 
 @app.route('/shops')
 def shops():

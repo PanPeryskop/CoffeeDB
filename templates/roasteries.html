@@ -696,15 +696,15 @@ block content %}
                       const emptyStars = Math.max(0, 5 - stars);
 
                       const popupContent = `
-                          <div class="roastery-popup">
-                              <div class="roastery-popup-name">${roastery.name}</div>
-                              <div class="roastery-popup-location">${roastery.location}</div>
-                              <div class="roastery-popup-rating">
-                                  ${'★'.repeat(stars)}${'☆'.repeat(emptyStars)}
-                                  ${(roastery.rating || 0).toFixed(1)}
-                              </div>
-                          </div>
-                      `;
+                        <div class="roastery-popup">
+                            <div class="roastery-popup-name">${roastery.name}</div>
+                            <div class="roastery-popup-location">${roastery.location}</div>
+                            <div class="roastery-popup-rating">
+                                ${'★'.repeat(Math.floor(roastery.rating || 0))}${'☆'.repeat(5 - Math.floor(roastery.rating || 0))}
+                                ${(roastery.rating || 0).toFixed(1)}
+                            </div>
+                        </div>
+                    `;
 
                       marker.bindPopup(popupContent);
                   });
