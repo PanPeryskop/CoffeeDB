@@ -1,15 +1,11 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // Initialize notifications
   initNotifications();
 
-  // Initialize password toggle
   initPasswordToggle();
 
-  // Initialize scroll animations
   initScrollAnimations();
 });
 
-// Handle notifications
 function initNotifications() {
   const notifications = document.querySelectorAll(".notification");
 
@@ -25,7 +21,6 @@ function initNotifications() {
       });
     }
 
-    // Auto remove after 5 seconds
     setTimeout(() => {
       if (notification.parentElement) {
         notification.style.animation = "fadeOut 0.5s forwards";
@@ -39,7 +34,6 @@ function initNotifications() {
   });
 }
 
-// Toggle password visibility
 function initPasswordToggle() {
   const toggleBtns = document.querySelectorAll(".toggle-password");
 
@@ -59,16 +53,13 @@ function initPasswordToggle() {
   });
 }
 
-// Scroll animations for elements
 function initScrollAnimations() {
   const animatedElements = document.querySelectorAll(
     ".feature-card, .coffee-card"
   );
 
-  // Initial check
   checkElementsInView();
 
-  // Check on scroll
   window.addEventListener("scroll", checkElementsInView);
 
   function checkElementsInView() {
@@ -83,7 +74,6 @@ function initScrollAnimations() {
   }
 }
 
-// Add smooth scrolling for anchor links
 document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
   anchor.addEventListener("click", function (e) {
     e.preventDefault();
@@ -101,7 +91,6 @@ document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
   });
 });
 
-// Add active class to current nav link
 const currentPath = window.location.pathname;
 const navLinks = document.querySelectorAll(".nav-link");
 
@@ -115,14 +104,12 @@ navLinks.forEach((link) => {
   }
 });
 
-// Form validation
 const forms = document.querySelectorAll("form");
 
 forms.forEach((form) => {
   form.addEventListener("submit", function (e) {
     let isValid = true;
 
-    // Basic validation
     const requiredInputs = form.querySelectorAll("[required]");
     requiredInputs.forEach((input) => {
       if (!input.value.trim()) {
@@ -133,7 +120,6 @@ forms.forEach((form) => {
       }
     });
 
-    // Email validation
     const emailInputs = form.querySelectorAll('input[type="email"]');
     emailInputs.forEach((input) => {
       if (input.value && !isValidEmail(input.value)) {
@@ -180,7 +166,6 @@ function isValidEmail(email) {
   return re.test(String(email).toLowerCase());
 }
 
-// Add ripple effect to buttons
 const buttons = document.querySelectorAll(".btn");
 
 buttons.forEach((button) => {

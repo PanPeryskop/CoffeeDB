@@ -4,7 +4,6 @@
 
 {% block head %}
 {{ super() }}
-<!-- Leaflet dla map - załaduj asynchronicznie -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 {% endblock %}
@@ -206,14 +205,12 @@
       return;
     }
 
-    // Check if map data is valid
     if (!mapData.lat || !mapData.lng) {
       console.warn('Invalid map data. Map will not be displayed.');
       mapElement.innerHTML = '<p>Map data is not available.</p>';
       return;
     }
 
-    // Asynchronously load Leaflet library
     const leafletPromise = new Promise((resolve, reject) => {
       if (typeof L !== 'undefined') {
         resolve();
@@ -241,19 +238,15 @@
 
     leafletPromise
       .then(() => {
-        // Initialize map
         const map = L.map('roastery-map').setView([mapData.lat, mapData.lng], 13);
 
-        // Add tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Add marker
         const marker = L.marker([mapData.lat, mapData.lng]).addTo(map);
         marker.bindPopup(`<b>${mapData.name}</b><br>${mapData.address}`).openPopup();
 
-        // Invalidate size after content loads
         setTimeout(() => {
           map.invalidateSize();
         }, 100);
@@ -264,7 +257,6 @@
       });
   }
 
-  // Initialize map after DOM is loaded
   document.addEventListener('DOMContentLoaded', initMap);
 </script>
 

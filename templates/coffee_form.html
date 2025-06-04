@@ -110,7 +110,6 @@
                 <div class="custom-select">
                     <select id="roasteryId" name="roasteryId" class="form-control">
                         <option value="0">Select roastery (optional)</option>
-                        <!-- Options would be populated from the database, example: -->
                         <option value="1" {% if coffee and coffee.roasteryId == 1 %}selected{% endif %}>Coffee Roasters</option>
                         <option value="2" {% if coffee and coffee.roasteryId == 2 %}selected{% endif %}>Java Specialty</option>
                     </select>
@@ -312,12 +311,10 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Roast profile slider
         const roastSlider = document.getElementById('roastSlider');
         const roastProfile = document.getElementById('roastProfile');
         const roastLevels = document.querySelectorAll('.roast-level');
         
-        // Set initial active state
         updateRoastLevel(roastSlider.value);
         
         roastSlider.addEventListener('input', function() {
@@ -356,7 +353,6 @@
             roastProfile.value = profileValue;
         }
         
-        // Tags input
         const tagInput = document.getElementById('tagInput');
         const tagsContainer = document.getElementById('tagsContainer');
         const flavourNotesInput = document.getElementById('flavourNotes');
@@ -373,7 +369,6 @@
         suggestedTags.forEach(tag => {
             tag.addEventListener('click', function() {
                 const tagText = this.textContent;
-                // Check if tag already exists
                 const existingTags = Array.from(tagsContainer.querySelectorAll('.tag')).map(t => t.textContent.replace('×', '').trim());
                 if (!existingTags.includes(tagText)) {
                     addTag(tagText);
@@ -381,7 +376,6 @@
             });
         });
         
-        // Set up existing tags
         document.querySelectorAll('.tag-remove').forEach(btn => {
             btn.addEventListener('click', function() {
                 this.parentElement.remove();
@@ -410,7 +404,6 @@
             flavourNotesInput.value = tags.join(',');
         }
         
-        // Character counter
         const descriptionTextarea = document.getElementById('description');
         const currentCount = document.getElementById('currentCount');
         const maxCount = document.getElementById('maxCount');
@@ -426,7 +419,6 @@
             }
         });
         
-        // Initial count
         currentCount.textContent = descriptionTextarea.value.length;
     });
 </script>

@@ -326,16 +326,13 @@ block content %}
 <script>
   let mapInitialized = false;
 
-  // Opóźnione ładowanie mapy
   document.addEventListener('DOMContentLoaded', function() {
-      // Opóźnij inicjalizację mapy aby najpierw załadować resztę strony
       setTimeout(initMap, 300);
   });
 
   function initMap() {
       if (mapInitialized) return;
 
-      // Dynamiczne ładowanie Leaflet
       const leafletPromise = new Promise((resolve, reject) => {
           if (typeof L !== 'undefined') {
               resolve();
@@ -367,15 +364,12 @@ block content %}
           const mapContainer = document.getElementById('map');
           const loadingElement = mapContainer.querySelector('.map-loading');
 
-          // Initialize map
           const map = L.map('map').setView([52.2297, 21.0122], 5); // Default center on Poland
 
-          // Add tile layer (OpenStreetMap)
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           }).addTo(map);
 
-          // Roastery locations data
           const roasteries = [
               {% for roastery in roasteries %}
               {
@@ -390,18 +384,14 @@ block content %}
               {% endfor %}
           ];
 
-          // Create a layer group for markers so we can filter them
           const markersLayer = L.layerGroup().addTo(map);
 
-          // Add markers for all roasteries
           roasteries.forEach(roastery => {
               const marker = L.marker([roastery.lat, roastery.lng]).addTo(markersLayer);
 
-              // Fixed star rating display
               const stars = Math.max(0, Math.min(5, Math.floor(roastery.rating || 0)));
               const emptyStars = Math.max(0, 5 - stars);
 
-              // Create popup content
               const popupContent = `
                   <div class="roastery-popup">
                       <div class="roastery-popup-name">${roastery.name}</div>
@@ -414,10 +404,9 @@ block content %}
               `;
 
               marker.bindPopup(popupContent);
-              marker.roasteryData = roastery; // Store roastery data with marker for filtering
+              marker.roasteryData = roastery; 
           });
 
-          // Fit map to show all markers
           try {
               const bounds = markersLayer.getBounds();
               if (bounds.isValid()) {
@@ -427,12 +416,10 @@ block content %}
               console.log("No valid bounds found, using default view");
           }
 
-          // Ukryj komunikat ładowania
           if (loadingElement) {
               loadingElement.style.display = 'none';
           }
 
-          // Search functionality
           const searchInput = document.getElementById('roastery-search');
           const roasteryCards = document.querySelectorAll('.roastery-card');
 
@@ -451,7 +438,6 @@ block content %}
                   }
               });
 
-              // Also filter markers on the map
               markersLayer.clearLayers();
 
               roasteries.filter(roastery => {
@@ -461,7 +447,6 @@ block content %}
               }).forEach(roastery => {
                   const marker = L.marker([roastery.lat, roastery.lng]).addTo(markersLayer);
 
-                  // Fixed star rating display
                   const stars = Math.max(0, Math.min(5, Math.floor(roastery.rating || 0)));
                   const emptyStars = Math.max(0, 5 - stars);
 
@@ -479,7 +464,6 @@ block content %}
                   marker.bindPopup(popupContent);
               });
 
-              // Update map bounds after filtering
               try {
                   const bounds = markersLayer.getBounds();
                   if (bounds.isValid()) {
@@ -490,14 +474,11 @@ block content %}
               }
           });
 
-          // Add country filter functionality
           const searchBarDiv = document.querySelector('.search-bar');
 
-          // Get unique countries from roasteries data
           const countries = [...new Set(roasteries.map(roastery => roastery.country))].filter(Boolean);
 
           if (countries.length > 1) {
-              // Create country filter UI
               const countryFilterDiv = document.createElement('div');
               countryFilterDiv.className = 'country-filter';
 
@@ -508,43 +489,27 @@ block content %}
               const dropdownDiv = document.createElement('div');
               dropdownDiv.className = 'country-filter-dropdown';
 
-              // NEON CHECKBOX CREATION FUNCTION
               function createNeonCheckbox(country, isAll = false) {
                 const label = document.createElement('label');
                 label.className = 'country-checkbox';
 
-                // Create checkbox input
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.checked = true;
                 checkbox.dataset.country = country;
 
-                // Create neon checkbox structure
                 const neonCheckbox = document.createElement('div');
                 neonCheckbox.className = 'neon-checkbox__frame';
 
-                // Create box and check container
                 const boxDiv = document.createElement('div');
                 boxDiv.className = 'neon-checkbox__box';
 
-                // Create check container with SVG
                 const checkContainer = document.createElement('div');
                 checkContainer.className = 'neon-checkbox__check-container';
 
-                // const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                // svg.setAttribute('viewBox', '0 0 24 24');
-                // svg.className = 'neon-checkbox__check';
-
-                // const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                // path.setAttribute('d', 'M3,12.5l7,7L21,5');
-                // svg.appendChild(path);
-                // checkContainer.appendChild(svg);
-
-                // Create glow element
                 const glow = document.createElement('div');
                 glow.className = 'neon-checkbox__glow';
 
-                // Create borders
                 const borders = document.createElement('div');
                 borders.className = 'neon-checkbox__borders';
 
@@ -553,16 +518,13 @@ block content %}
                   borders.appendChild(span);
                 }
 
-                // Add all elements to box
                 boxDiv.appendChild(checkContainer);
                 boxDiv.appendChild(glow);
                 boxDiv.appendChild(borders);
 
-                // Create effects container
                 const effectsDiv = document.createElement('div');
                 effectsDiv.className = 'neon-checkbox__effects';
 
-                // Create particles
                 const particles = document.createElement('div');
                 particles.className = 'neon-checkbox__particles';
 
@@ -571,7 +533,6 @@ block content %}
                   particles.appendChild(span);
                 }
 
-                // Create rings
                 const rings = document.createElement('div');
                 rings.className = 'neon-checkbox__rings';
 
@@ -581,7 +542,6 @@ block content %}
                   rings.appendChild(ring);
                 }
 
-                // Create sparks
                 const sparks = document.createElement('div');
                 sparks.className = 'neon-checkbox__sparks';
 
@@ -590,16 +550,13 @@ block content %}
                   sparks.appendChild(span);
                 }
 
-                // Add all effects
                 effectsDiv.appendChild(particles);
                 effectsDiv.appendChild(rings);
                 effectsDiv.appendChild(sparks);
 
-                // Assemble the neon checkbox
                 neonCheckbox.appendChild(boxDiv);
                 neonCheckbox.appendChild(effectsDiv);
 
-                // Add all to label
                 label.appendChild(checkbox);
                 label.appendChild(neonCheckbox);
                 label.appendChild(document.createTextNode(isAll ? 'All countries' : (country || 'Unknown')));
@@ -607,12 +564,10 @@ block content %}
                 return label;
               }
 
-              // Add "All countries" checkbox
               const allCountriesLabel = createNeonCheckbox('all', true);
               const allCountriesCheckbox = allCountriesLabel.querySelector('input[type="checkbox"]');
               dropdownDiv.appendChild(allCountriesLabel);
 
-              // Add checkbox for each country
               countries.forEach(country => {
                 const label = createNeonCheckbox(country);
                 dropdownDiv.appendChild(label);
@@ -622,56 +577,45 @@ block content %}
               countryFilterDiv.appendChild(dropdownDiv);
               searchBarDiv.after(countryFilterDiv);
 
-              // Toggle dropdown
               filterBtn.addEventListener('click', function(e) {
                   e.preventDefault();
                   e.stopPropagation();
                   dropdownDiv.classList.toggle('show');
               });
 
-              // Close dropdown when clicking outside
               document.addEventListener('click', function(event) {
                   if (!countryFilterDiv.contains(event.target)) {
                       dropdownDiv.classList.remove('show');
                   }
               });
 
-              // Handle "All countries" checkbox
               allCountriesCheckbox.addEventListener('change', function() {
                   const checked = this.checked;
 
-                  // Update all other checkboxes
                   dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])').forEach(cb => {
                       cb.checked = checked;
                   });
 
-                  // Apply filter
                   applyCountryFilter();
               });
 
-              // Handle individual country checkboxes
               dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])').forEach(checkbox => {
                   checkbox.addEventListener('change', function() {
-                      // Check if all country checkboxes are checked
                       const allChecked = Array.from(
                           dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"])')
                       ).every(cb => cb.checked);
 
-                      // Update "All countries" checkbox
                       allCountriesCheckbox.checked = allChecked;
 
-                      // Apply filter
                       applyCountryFilter();
                   });
               });
 
               function applyCountryFilter() {
-                  // Get selected countries
                   const selectedCountries = Array.from(
                       dropdownDiv.querySelectorAll('input[type="checkbox"]:not([data-country="all"]):checked')
                   ).map(cb => cb.dataset.country);
 
-                  // Filter roastery cards
                   roasteryCards.forEach(card => {
                       const country = card.dataset.country;
                       const matchesCountry = selectedCountries.includes(country);
@@ -683,7 +627,6 @@ block content %}
                       }
                   });
 
-                  // Filter map markers
                   markersLayer.clearLayers();
 
                   roasteries.filter(roastery => {
@@ -691,7 +634,6 @@ block content %}
                   }).forEach(roastery => {
                       const marker = L.marker([roastery.lat, roastery.lng]).addTo(markersLayer);
 
-                      // Fixed star rating display
                       const stars = Math.max(0, Math.min(5, Math.floor(roastery.rating || 0)));
                       const emptyStars = Math.max(0, 5 - stars);
 
@@ -709,7 +651,6 @@ block content %}
                       marker.bindPopup(popupContent);
                   });
 
-                  // Update map bounds
                   try {
                       const bounds = markersLayer.getBounds();
                       if (bounds.isValid()) {

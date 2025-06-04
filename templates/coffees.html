@@ -22,13 +22,11 @@
                 <div class="filter-group">
                     <h4>Country</h4>
                     <div class="checkbox-list" id="country-filters">
-                        <!-- Filled dynamically with JS -->
                     </div>
                 </div>
                 <div class="filter-group">
                     <h4>Process</h4>
                     <div class="checkbox-list" id="process-filters">
-                        <!-- Filled dynamically with JS -->
                     </div>
                 </div>
             </div>
@@ -89,7 +87,6 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Search functionality
         const searchInput = document.getElementById('coffee-search');
         const coffeeCards = document.querySelectorAll('.coffee-card');
         
@@ -109,7 +106,6 @@
             });
         });
         
-        // Filter initialization
         const countries = new Set();
         const processes = new Set();
         
@@ -131,7 +127,6 @@
             processFilters.appendChild(checkbox);
         });
         
-        // Filter toggle
         const filterBtn = document.querySelector('.filter-btn');
         const filterContent = document.querySelector('.filter-content');
         
@@ -139,7 +134,6 @@
             filterContent.classList.toggle('show');
         });
         
-        // Close filter dropdown when clicking outside
         window.addEventListener('click', function(event) {
             if (!event.target.matches('.filter-btn') && !filterContent.contains(event.target)) {
                 filterContent.classList.remove('show');

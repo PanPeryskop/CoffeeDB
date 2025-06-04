@@ -26,6 +26,8 @@ content %}
   </div>
 </div>
 
+
+
 <div class="shops-list" id="shops-container">
   {% for shop in shops %}
   <div
@@ -289,8 +291,7 @@ content %}
 
 </style>
 
-// Replace your entire script section with this fixed version {% block extra_js
-%}
+ {% block extra_js%}
 <script>
   let mapInitialized = false;
 
@@ -352,18 +353,14 @@ content %}
               {% endfor %}
           ];
 
-          // Create a layer group for markers so we can filter them
           const markersLayer = L.layerGroup().addTo(map);
 
-          // Add markers for all shops
           shops.forEach(shop => {
               const marker = L.marker([shop.lat, shop.lng]).addTo(markersLayer);
 
-              // Fixed star rating display
               const stars = Math.max(0, Math.min(5, Math.floor(shop.rating || 0)));
               const emptyStars = Math.max(0, 5 - stars);
               
-              // Create popup content
               const popupContent = `
                   <div class="shop-popup">
                       <div class="shop-popup-name">${shop.name}</div>

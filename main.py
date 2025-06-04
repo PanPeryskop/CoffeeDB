@@ -8,7 +8,10 @@ app = Flask(__name__)
 app.secret_key = 'change_this_key'
 
 # Base API URL (Go server)
+
 API_BASE = 'http://srv17.mikr.us:40331'
+# 'http://srv17.mikr.us:40331'
+# local API_BASE = 'http://localhost:40331'
 
 # Geocoding API setup (using Nominatim/OpenStreetMap)
 GEOCODING_API = "https://nominatim.openstreetmap.org/search"
@@ -222,9 +225,34 @@ def shops():
 
 @app.route('/reviews')
 def reviews():
-    resp = requests.get(f"{API_BASE}/reviews")
-    lst = resp.json() if resp.ok else []
-    return render_template('reviews.html', reviews=lst)
+    reviews_resp = requests.get(f"{API_BASE}/reviews")
+    reviews_data = reviews_resp.json() if reviews_resp.ok else []
+    
+    coffees_resp = requests.get(f"{API_BASE}/coffees")
+    coffees_data = coffees_resp.json() if coffees_resp.ok else []
+    coffees_dict = {coffee['id']: coffee for coffee in coffees_data}
+    
+    roasteries_resp = requests.get(f"{API_BASE}/roasteries")
+    roasteries_data = roasteries_resp.json() if roasteries_resp.ok else []
+    roasteries_dict = {roastery['id']: roastery for roastery in roasteries_data}
+    
+    shops_resp = requests.get(f"{API_BASE}/shops")
+    shops_data = shops_resp.json() if shops_resp.ok else []
+    shops_dict = {shop['id']: shop for shop in shops_data}
+    
+    return render_template(
+        'reviews.html', 
+        reviews=reviews_data,
+        coffees=coffees_dict,
+        roasteries=roasteries_dict,
+        shops=shops_dict,
+        api_data=json.dumps({
+            'reviews': reviews_data,
+            'coffees': coffees_dict,
+            'roasteries': roasteries_dict,
+            'shops': shops_dict
+        })
+    )
 
 @app.route('/reviews/create', methods=['GET', 'POST'])
 def create_review():
@@ -257,12 +285,56 @@ def create_review():
                 return redirect(url_for('reviews'))
             else:
                 flash(f"Error adding review: {resp.text}", "error")
-                return render_template('review_form.html')
+                coffees_resp = requests.get(f"{API_BASE}/coffees")
+                coffees_data = coffees_resp.json() if coffees_resp.ok else []
+                
+                roasteries_resp = requests.get(f"{API_BASE}/roasteries")
+                roasteries_data = roasteries_resp.json() if roasteries_resp.ok else []
+                
+                shops_resp = requests.get(f"{API_BASE}/shops")
+                shops_data = shops_resp.json() if shops_resp.ok else []
+                
+                return render_template(
+                    'review_form.html',
+                    coffees=coffees_data,
+                    roasteries=roasteries_data,
+                    shops=shops_data
+                )
         except Exception as e:
             flash(f"Error adding review: {str(e)}", "error")
-            return render_template('review_form.html')
+            # Pobierz dane dla formularza w przypadku wyjątku
+            coffees_resp = requests.get(f"{API_BASE}/coffees")
+            coffees_data = coffees_resp.json() if coffees_resp.ok else []
+            
+            roasteries_resp = requests.get(f"{API_BASE}/roasteries")
+            roasteries_data = roasteries_resp.json() if roasteries_resp.ok else []
+            
+            shops_resp = requests.get(f"{API_BASE}/shops")
+            shops_data = shops_resp.json() if shops_resp.ok else []
+            
+            return render_template(
+                'review_form.html',
+                coffees=coffees_data,
+                roasteries=roasteries_data,
+                shops=shops_data
+            )
     
-    return render_template('review_form.html')
+    # Dla żądań GET - pobierz dane dla list rozwijanych
+    coffees_resp = requests.get(f"{API_BASE}/coffees")
+    coffees_data = coffees_resp.json() if coffees_resp.ok else []
+    
+    roasteries_resp = requests.get(f"{API_BASE}/roasteries")
+    roasteries_data = roasteries_resp.json() if roasteries_resp.ok else []
+    
+    shops_resp = requests.get(f"{API_BASE}/shops")
+    shops_data = shops_resp.json() if shops_resp.ok else []
+    
+    return render_template(
+        'review_form.html', 
+        coffees=coffees_data,
+        roasteries=roasteries_data,
+        shops=shops_data
+    )
 
 @app.route('/reviews/delete/<int:review_id>', methods=['POST'])
 def delete_review(review_id):

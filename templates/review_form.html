@@ -230,6 +230,7 @@
 {% endblock %}
 
 {% block extra_js %}
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const coffeeLoading = document.getElementById('coffee-loading');
@@ -254,44 +255,21 @@
         const reviewTextarea = document.getElementById('review');
         const charCount = document.getElementById('char-count');
         
-        const API_BASE = "http://srv17.mikr.us:40331";
+        const coffees = {{ coffees|tojson|safe }};
+        const roasteries = {{ roasteries|tojson|safe }};
+        const shops = {{ shops|tojson|safe }};
         
-        function loadEntities() {
-            fetch(`${API_BASE}/coffees`)
-                .then(response => response.json())
-                .then(data => {
-                    populateSelect(coffeeSelect, data, 'coffee');
-                    coffeeLoading.style.display = 'none';
-                })
-                .catch(error => {
-                    console.error('Error fetching coffees:', error);
-                    coffeeLoading.textContent = 'Failed to load coffees.';
-                });
-                
-            fetch(`${API_BASE}/roasteries`)
-                .then(response => response.json())
-                .then(data => {
-                    populateSelect(roasterySelect, data, 'roastery');
-                    roasteryLoading.style.display = 'none';
-                })
-                .catch(error => {
-                    console.error('Error fetching roasteries:', error);
-                    roasteryLoading.textContent = 'Failed to load roasteries.';
-                });
-                
-            fetch(`${API_BASE}/shops`)
-                .then(response => response.json())
-                .then(data => {
-                    populateSelect(shopSelect, data, 'coffee shop');
-                    shopLoading.style.display = 'none';
-                })
-                .catch(error => {
-                    console.error('Error fetching coffee shops:', error);
-                    shopLoading.textContent = 'Failed to load coffee shops.';
-                });
-        }
+        populateSelect(coffeeSelect, coffees, 'coffee');
+        populateSelect(roasterySelect, roasteries, 'roastery');
+        populateSelect(shopSelect, shops, 'coffee shop');
+        
+        if (coffeeLoading) coffeeLoading.style.display = 'none';
+        if (roasteryLoading) roasteryLoading.style.display = 'none';
+        if (shopLoading) shopLoading.style.display = 'none';
         
         function populateSelect(selectElement, data, entityType) {
+            if (!selectElement) return;
+            
             selectElement.innerHTML = `<option value="">Select a ${entityType}...</option>`;
             
             if (data && data.length > 0) {
@@ -391,7 +369,6 @@
             
             let formData = new FormData(form);
             
-            // Clear hidden fields that aren't needed based on the selected type
             if (selectedType !== 'coffee') {
                 formData.delete('coffeeId');
             }
@@ -407,8 +384,7 @@
             submitButton.disabled = true;
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
             
-            // Use traditional form POST approach which is more reliable
-            // and avoids CORS issues that can happen with fetch API
+
             form.submit();
         });
         
@@ -432,8 +408,6 @@
             }, 3000);
         }
         
-        loadEntities();
-        
         const searchParams = new URLSearchParams(window.location.search);
         
         if (searchParams.has('coffeeId')) {
@@ -443,12 +417,7 @@
             roasteryGroup.classList.add('hidden');
             shopGroup.classList.add('hidden');
             
-            const checkSelectOption = setInterval(() => {
-                if (coffeeSelect.options.length > 1) {
-                    coffeeSelect.value = coffeeId;
-                    clearInterval(checkSelectOption);
-                }
-            }, 100);
+            coffeeSelect.value = coffeeId;
         }
         
         if (searchParams.has('roasteryId')) {
@@ -458,12 +427,7 @@
             roasteryGroup.classList.remove('hidden');
             shopGroup.classList.add('hidden');
             
-            const checkSelectOption = setInterval(() => {
-                if (roasterySelect.options.length > 1) {
-                    roasterySelect.value = roasteryId;
-                    clearInterval(checkSelectOption);
-                }
-            }, 100);
+            roasterySelect.value = roasteryId;
         }
         
         if (searchParams.has('shopId')) {
@@ -473,16 +437,12 @@
             roasteryGroup.classList.add('hidden');
             shopGroup.classList.remove('hidden');
             
-            const checkSelectOption = setInterval(() => {
-                if (shopSelect.options.length > 1) {
-                    shopSelect.value = shopId;
-                    clearInterval(checkSelectOption);
-                }
-            }, 100);
+            shopSelect.value = shopId;
         }
     });
 </script>
 
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 {% if session.get('jwt_token') %}
 <input type="hidden" id="flask-jwt-token" value="{{ session.get('jwt_token') }}">
 {% endif %}
