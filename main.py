@@ -7,13 +7,10 @@ import random
 app = Flask(__name__)
 app.secret_key = 'change_this_key'
 
-# Base API URL (Go server)
-
 API_BASE = 'http://srv17.mikr.us:40331'
 # 'http://srv17.mikr.us:40331'
 # local API_BASE = 'http://localhost:40331'
 
-# Geocoding API setup (using Nominatim/OpenStreetMap)
 GEOCODING_API = "https://nominatim.openstreetmap.org/search"
 GEOCODING_HEADERS = {
     "User-Agent": "CoffeeBaseApp/1.0",
@@ -87,7 +84,6 @@ def get_coffee(coffee_id):
             if roastery_resp.ok:
                 roastery = roastery_resp.json()
                 coffee['roasteryName'] = roastery['name']
-                # Możemy też dodać więcej informacji o palarni, jeśli potrzebne
                 coffee['roasteryCountry'] = roastery['country']
                 coffee['roasteryCity'] = roastery['city']
         
@@ -302,7 +298,6 @@ def create_review():
                 )
         except Exception as e:
             flash(f"Error adding review: {str(e)}", "error")
-            # Pobierz dane dla formularza w przypadku wyjątku
             coffees_resp = requests.get(f"{API_BASE}/coffees")
             coffees_data = coffees_resp.json() if coffees_resp.ok else []
             
@@ -319,7 +314,6 @@ def create_review():
                 shops=shops_data
             )
     
-    # Dla żądań GET - pobierz dane dla list rozwijanych
     coffees_resp = requests.get(f"{API_BASE}/coffees")
     coffees_data = coffees_resp.json() if coffees_resp.ok else []
     
