@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CoffeeDB</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Montserrat:wght@300;400;600&display=swap");
+
+      :root {
+        --neon-purple: #be52c9;
+        --neon-pink: #ff07f7;
+        --neon-blue: #00f2ff;
+        --neon-cyan: #00c8c8;
+        --neon-green: #39ff14;
+        --bg-dark: #0d021a;
+        --bg-medium: #1a0433;
+        --bg-light: #2c0b50;
+        --text-color: #f0f0f0;
+        --text-dim: #a09cb0;
+        --accent-glow: 0 0 5px var(--neon-blue), 0 0 10px var(--neon-blue),
+          0 0 15px var(--neon-pink), 0 0 20px var(--neon-pink);
+        --text-shadow-neon: 0 0 3px #fff, 0 0 5px var(--neon-pink),
+          0 0 8px var(--neon-pink);
+        --border-neon: 2px solid var(--neon-purple);
+        --border-radius-md: 12px;
+        --font-primary: "Montserrat", sans-serif;
+        --font-heading: "Orbitron", sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: var(--font-primary);
+        color: var(--text-color);
+        background-color: var(--bg-dark);
+        line-height: 1.7;
+        overflow-x: hidden;
+        background-image: radial-gradient(
+            circle at 20% 20%,
+            rgba(var(--neon-purple-rgb, 190), 82, 201, 0.1) 0%,
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at 80% 70%,
+            rgba(var(--neon-blue-rgb, 0), 242, 255, 0.08) 0%,
+            transparent 30%
+          );
+        background-attachment: fixed;
+      }
+
+      body::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      body::-webkit-scrollbar-track {
+        background: var(--bg-dark);
+      }
+
+      body::-webkit-scrollbar-thumb {
+        background: linear-gradient(var(--neon-purple), var(--neon-pink));
+        border-radius: 5px;
+      }
+
+      .app-container {
+        position: relative;
+      }
+
+      .nav-trigger {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1001;
+        font-size: 2.5rem;
+        color: var(--neon-pink);
+        cursor: pointer;
+        background: rgba(30, 2, 50, 0.8);
+        padding: 5px 10px;
+        border-radius: 50%;
+        text-shadow: var(--accent-glow);
+        transition: transform 0.3s ease, color 0.3s ease;
+      }
+      .nav-trigger:hover {
+        transform: scale(1.1);
+        color: var(--neon-blue);
+      }
+
+      .main-nav {
+        position: fixed;
+        top: 0;
+        right: -300px;
+        width: 280px;
+        height: 100vh;
+        background: rgba(var(--bg-medium-rgb, 26), 4, 51, 0.95);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        padding: 80px 20px 20px;
+        transition: right 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+        border-left: 2px solid var(--neon-purple);
+        box-shadow: -10px 0 25px rgba(var(--neon-pink-rgb, 255), 7, 247, 0.3);
+      }
+
+      .main-nav.active {
+        right: 0;
+      }
+
+      .main-nav ul {
+        list-style: none;
+      }
+
+      .main-nav li a {
+        display: block;
+        color: var(--text-color);
+        text-decoration: none;
+        font-family: var(--font-heading);
+        font-size: 1.1rem;
+        padding: 12px 15px;
+        margin-bottom: 8px;
+        border-radius: var(--border-radius-md);
+        transition: background 0.3s ease, color 0.3s ease, text-shadow 0.3s ease,
+          transform 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .main-nav li a::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(var(--neon-pink-rgb, 255), 7, 247, 0.3),
+          transparent
+        );
+        transition: left 0.4s ease;
+      }
+
+      .main-nav li a:hover,
+      .main-nav li a.active-link {
+        background: rgba(var(--neon-pink-rgb, 255), 7, 247, 0.1);
+        color: var(--neon-pink);
+        text-shadow: var(--text-shadow-neon);
+        transform: translateX(5px);
+      }
+      .main-nav li a:hover::before {
+        left: 100%;
+      }
+
+      .section {
+        min-height: 100vh;
+        padding: 100px 5vw;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 1px dashed
+          rgba(var(--neon-purple-rgb, 190), 82, 201, 0.3);
+        opacity: 0;
+        transform: translateY(50px);
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+      }
+      .section.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .section::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(
+          ellipse at center,
+          rgba(var(--neon-purple-rgb, 190), 82, 201, 0.05) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      #cover {
+        background: linear-gradient(
+          135deg,
+          var(--bg-dark) 0%,
+          var(--bg-medium) 70%,
+          var(--neon-purple) 150%
+        );
+      }
+
+      .cover-content {
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .logo-main {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        margin-bottom: 30px;
+        box-shadow: 0 0 15px var(--neon-pink), 0 0 30px var(--neon-pink),
+          0 0 45px var(--neon-blue);
+        animation: pulseLogo 2s infinite alternate;
+        object-fit: cover;
+      }
+
+      @keyframes pulseLogo {
+        from {
+          box-shadow: 0 0 15px var(--neon-pink), 0 0 30px var(--neon-pink),
+            0 0 45px var(--neon-blue);
+          transform: scale(1);
+        }
+        to {
+          box-shadow: 0 0 25px var(--neon-blue), 0 0 50px var(--neon-blue),
+            0 0 75px var(--neon-pink);
+          transform: scale(1.05);
+        }
+      }
+
+      .cover-title {
+        font-family: var(--font-heading);
+        font-size: clamp(2.5rem, 8vw, 5rem);
+        color: var(--text-color);
+        text-shadow: 0 0 5px #fff, 0 0 10px var(--neon-pink),
+          0 0 15px var(--neon-pink), 0 0 20px var(--neon-purple);
+        margin-bottom: 20px;
+        animation: flickerTitle 3s infinite alternate;
+      }
+
+      @keyframes flickerTitle {
+        0%,
+        18%,
+        22%,
+        25%,
+        53%,
+        57%,
+        100% {
+          text-shadow: 0 0 4px #fff, 0 0 11px var(--neon-pink),
+            0 0 19px var(--neon-pink), 0 0 40px var(--neon-purple),
+            0 0 80px var(--neon-purple), 0 0 90px var(--neon-purple),
+            0 0 100px var(--neon-purple), 0 0 150px var(--neon-purple);
+        }
+        20%,
+        24%,
+        55% {
+          text-shadow: none;
+        }
+      }
+
+      .cover-subtitle {
+        font-size: clamp(1rem, 3vw, 1.5rem);
+        color: var(--text-dim);
+        max-width: 700px;
+        margin-bottom: 30px;
+        line-height: 1.6;
+      }
+
+      .cta-button {
+        font-family: var(--font-heading);
+        font-size: 1.2rem;
+        padding: 15px 30px;
+        color: var(--text-color);
+        background: transparent;
+        border: 2px solid var(--neon-pink);
+        border-radius: var(--border-radius-md);
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 0 10px var(--neon-pink) inset, 0 0 10px var(--neon-pink);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      .cta-button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--neon-pink),
+          transparent
+        );
+        transition: left 0.5s ease;
+      }
+      .cta-button:hover {
+        color: var(--bg-dark);
+        background: var(--neon-pink);
+        box-shadow: 0 0 20px var(--neon-pink), 0 0 30px var(--neon-pink);
+      }
+      .cta-button:hover::before {
+        left: 100%;
+      }
+
+      .section-title {
+        font-family: var(--font-heading);
+        font-size: clamp(2rem, 6vw, 3.5rem);
+        color: var(--neon-cyan);
+        margin-bottom: 50px;
+        text-shadow: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-blue);
+        position: relative;
+        padding-bottom: 15px;
+      }
+      .section-title::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--neon-pink), var(--neon-blue));
+        box-shadow: 0 0 8px var(--neon-blue);
+        border-radius: 2px;
+      }
+
+      .subsection-title {
+        font-family: var(--font-heading);
+        font-size: clamp(1.5rem, 4vw, 2.2rem);
+        color: var(--neon-purple);
+        margin: 40px 0 20px;
+        text-shadow: 0 0 5px var(--neon-purple);
+      }
+
+      p {
+        max-width: 800px;
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+        color: var(--text-dim);
+        text-align: justify;
+      }
+      .section p a {
+        color: var(--neon-pink);
+        text-decoration: none;
+        font-weight: bold;
+        transition: color 0.3s ease, text-shadow 0.3s ease;
+      }
+      .section p a:hover {
+        color: var(--neon-blue);
+        text-shadow: 0 0 5px var(--neon-blue);
+      }
+
+      .quote {
+        font-family: var(--font-heading);
+        font-size: clamp(1.2rem, 3vw, 1.8rem);
+        font-style: italic;
+        color: var(--neon-cyan);
+        margin: 40px auto;
+        padding: 20px;
+        max-width: 700px;
+        border-left: 3px solid var(--neon-cyan);
+        border-right: 3px solid var(--neon-cyan);
+        border-radius: var(--border-radius-md);
+        background: rgba(var(--neon-cyan-rgb, 0), 161, 212, 0.05);
+        box-shadow: 0 0 15px rgba(var(--neon-cyan-rgb, 0), 161, 212, 0.2);
+        position: relative;
+      }
+      .quote::before,
+      .quote::after {
+        content: "“";
+        font-size: 4rem;
+        position: absolute;
+        color: var(--neon-cyan);
+        opacity: 0.2;
+        font-family: serif;
+      }
+      .quote::before {
+        top: -10px;
+        left: 10px;
+      }
+      .quote::after {
+        content: "”";
+        bottom: -30px;
+        right: 10px;
+      }
+
+      .highlight-box {
+        background: rgba(var(--neon-purple-rgb, 190), 82, 201, 0.1);
+        border: 1px solid var(--neon-purple);
+        padding: 25px;
+        margin: 30px 0;
+        border-radius: var(--border-radius-md);
+        box-shadow: 0 0 10px rgba(var(--neon-purple-rgb, 190), 82, 201, 0.2),
+          0 0 20px rgba(var(--neon-purple-rgb, 190), 82, 201, 0.2) inset;
+        max-width: 800px;
+      }
+      .highlight-box ul {
+        list-style: none;
+        padding-left: 0;
+      }
+      .highlight-box li {
+        padding: 8px 0 8px 25px;
+        position: relative;
+        font-size: 1.05rem;
+        text-align: left;
+      }
+      .highlight-box li::before {
+        content: "✨";
+        position: absolute;
+        left: 0;
+        color: var(--neon-pink);
+        animation: sparkle 1.5s infinite;
+      }
+      @keyframes sparkle {
+        0%,
+        100% {
+          opacity: 0.5;
+          transform: scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.2);
+        }
+      }
+
+      .features-grid,
+      .benefits-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        width: 100%;
+        max-width: 1200px;
+        margin-top: 40px;
+      }
+
+      .feature-card,
+      .benefit-item {
+        background: var(--bg-light);
+        padding: 25px;
+        border-radius: var(--border-radius-md);
+        border: 1px solid var(--neon-purple);
+        box-shadow: 0 0 15px rgba(var(--neon-purple-rgb, 190), 82, 201, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        text-align: left;
+      }
+      .feature-card:hover,
+      .benefit-item:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 0 25px rgba(var(--neon-pink-rgb, 255), 7, 247, 0.5),
+          0 0 10px var(--neon-blue);
+      }
+
+      .feature-title,
+      .benefit-title {
+        font-family: var(--font-heading);
+        font-size: 1.5rem;
+        color: var(--neon-pink);
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+      }
+      .feature-icon {
+        font-size: 1.8rem;
+        margin-right: 10px;
+        color: var(--neon-blue);
+        text-shadow: 0 0 8px var(--neon-blue);
+      }
+      .benefit-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--neon-purple);
+        opacity: 0.5;
+        margin-right: 15px;
+        line-height: 1;
+      }
+
+      .styled-table {
+        width: 100%;
+        max-width: 900px;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 40px auto;
+        background: var(--bg-light);
+        border-radius: var(--border-radius-md);
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(var(--neon-blue-rgb, 0), 242, 255, 0.3);
+        border: 1px solid var(--neon-blue);
+      }
+      .styled-table th,
+      .styled-table td {
+        padding: 15px 20px;
+        text-align: left;
+        border-bottom: 1px solid rgba(var(--neon-blue-rgb, 0), 242, 255, 0.2);
+      }
+      .styled-table th {
+        background: linear-gradient(
+          90deg,
+          var(--neon-purple),
+          var(--neon-pink)
+        );
+        color: var(--text-color);
+        font-family: var(--font-heading);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .styled-table tr:last-child td {
+        border-bottom: none;
+      }
+      .styled-table td {
+        color: var(--text-dim);
+      }
+      .styled-table tr:hover td {
+        background-color: rgba(var(--neon-pink-rgb, 255), 7, 247, 0.1);
+        color: var(--text-color);
+      }
+      .styled-table td:first-child {
+        color: var(--neon-cyan);
+        font-weight: bold;
+      }
+      .styled-table td:nth-child(2) {
+        font-style: italic;
+      }
+      .styled-table td:nth-child(3) {
+        color: var(--neon-pink);
+      }
+
+      .video-section-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        width: 100%;
+        max-width: 1200px;
+        margin-top: 30px;
+      }
+      .video-container {
+        background: var(--bg-light);
+        padding: 15px;
+        border-radius: var(--border-radius-md);
+        border: 1px solid var(--neon-blue);
+        box-shadow: 0 0 15px rgba(var(--neon-blue-rgb, 0), 242, 255, 0.4);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .video-container:hover {
+        transform: scale(1.03);
+        box-shadow: 0 0 25px rgba(var(--neon-blue-rgb, 0), 242, 255, 0.6);
+      }
+      .video-container iframe {
+        width: 100%;
+        min-height: 300px;
+        border: none;
+        border-radius: calc(var(--border-radius-md) - 5px);
+      }
+      .video-title-caption {
+        font-family: var(--font-heading);
+        font-size: 1.3rem;
+        color: var(--neon-cyan);
+        margin-top: 15px;
+      }
+
+      #final-cta .cta-button {
+        margin-top: 20px;
+        padding: 20px 40px;
+        font-size: 1.4rem;
+      }
+
+      #final-cta .logo-main {
+        width: 120px;
+        height: 120px;
+      }
+
+      .js-color-vars {
+        --neon-purple-rgb: 190, 82, 201;
+        --neon-pink-rgb: 255, 7, 247;
+        --neon-blue-rgb: 0, 242, 255;
+        --neon-cyan-rgb: 0, 200, 200;
+        --bg-medium-rgb: 26, 4, 51;
+      }
+
+      #particle-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -2;
+        pointer-events: none;
+      }
+
+      .footer {
+        text-align: center;
+        padding: 30px 20px;
+        font-size: 0.9rem;
+        color: var(--text-dim);
+        border-top: 1px solid rgba(var(--neon-purple-rgb, 190), 82, 201, 0.2);
+        background: var(--bg-dark);
+      }
+      .footer a {
+        color: var(--neon-purple);
+        text-decoration: none;
+      }
+      .footer a:hover {
+        color: var(--neon-pink);
+        text-shadow: 0 0 5px var(--neon-pink);
+      }
+
+
+      .footer-link {
+        color: var(--neon-purple);
+        text-decoration: none;
+        font-family: "Orbitron", sans-serif;
+        font-size: 1.2rem;
+        border: none;
+        background: none;
+        box-shadow: none;
+        transition: color 0.3s, text-shadow 0.3s;
+      }
+      .footer-link:hover {
+        color: var(--neon-pink);
+        text-shadow: 0 0 5px var(--neon-pink);
+      }
+    </style>
+  </head>
+  <body class="js-color-vars">
+    <canvas id="particle-canvas"></canvas>
+    <div class="app-container">
+      <div class="nav-trigger" id="navTrigger">&#9776;</div>
+      <nav class="main-nav" id="mainNav">
+        <ul>
+          <li><a href="#cover" class="nav-link">Start</a></li>
+          <li><a href="#wprowadzenie" class="nav-link">Wprowadzenie</a></li>
+          <li><a href="#wizja-misja" class="nav-link">Wizja i Misja</a></li>
+          <li>
+            <a href="#problem-rozwiazanie" class="nav-link"
+              >Problem i Rozwiązanie</a
+            >
+          </li>
+          <li>
+            <a href="#funkcjonalnosci" class="nav-link">Funkcjonalności</a>
+          </li>
+          <li><a href="#odbiorcy" class="nav-link">Odbiorcy</a></li>
+          <li><a href="#korzysci" class="nav-link">Korzyści</a></li>
+          <li><a href="#przewaga" class="nav-link">Przewaga</a></li>
+          <li><a href="#demonstracja" class="nav-link">Demonstracja</a></li>
+          <li><a href="#final-cta" class="nav-link">Wypróbuj</a></li>
+        </ul>
+      </nav>
+
+      <section id="cover" class="section active">
+        <div class="cover-content">
+          <img src="logo.png" alt="CoffeeDB Logo" class="logo-main" />
+          <h1 class="cover-title">CoffeeDB</h1>
+          <p class="cover-subtitle">
+            Nowoczesna aplikacja internetowa dla miłośników kawy – pozwala
+            odkrywać, oceniać i przeglądać kawy speciality, kawiarnie oraz
+            palarnie.
+          </p>
+          <a
+            href="http://srv17.mikr.us:40330/"
+            target="_blank"
+            class="cta-button"
+            >Odwiedź Platformę</a
+          >
+          <div
+            class="github-top-link"
+            style="margin-top: 24px; margin-bottom: -40px; text-align: center"
+          >
+            <a
+              href="https://github.com/PanPeryskop/CoffeeDB"
+              target="_blank"
+              class="footer-link"
+              ><i class="fab fa-github"></i> Kod źródłowy na GitHub</a
+            >
+          </div>
+        </div>
+      </section>
+
+      <section id="wprowadzenie" class="section">
+        <h2 class="section-title">Wprowadzenie</h2>
+        <p>
+          CoffeeDB to innowacyjna aplikacja webowa, zaprojektowana dla
+          pasjonatów kawy. Łączy funkcje odkrywania, oceniania i eksploracji
+          najlepszych kaw, kawiarni oraz palarni. W dobie rosnącej popularności
+          kawy speciality, ta platforma stanowi centralny punkt dla globalnej
+          społeczności kawowej.
+        </p>
+        <div class="quote">Odkrywaj. Degustuj. Dziel się.</div>
+        <p>
+          To nie jest tylko kolejna aplikacja - to kompleksowy ekosystem, który
+          integruje wszystkie aspekty świata kawy. Dzięki filtrom wyszukiwania,
+          interaktywnym mapom i szczegółowym profilom kaw, użytkownicy mogą
+          odkrywać nowe smaki i miejsca, dzielić się swoimi doświadczeniami.
+        </p>
+        <p>
+          Aplikacja dostępna pod linkiem:
+          <a href="http://srv17.mikr.us:40330/" target="_blank"
+            >http://srv17.mikr.us:40330/</a
+          >
+        </p>
+      </section>
+
+      <section id="wizja-misja" class="section">
+        <h2 class="section-title">Wizja i Misja</h2>
+        <h3 class="subsection-title">Wizja</h3>
+        <p>
+          Wizją tej platformy jest stworzenie globalnej, pulsującej życiem
+          społeczności kawowej, gdzie każdy miłośnik kawy może bez trudu
+          odkrywać nowe, ekscytujące smaki, dzielić się swoimi unikalnymi
+          doświadczeniami. CoffeeDB jest cyfrowym kompasem dla wszystkich,
+          którzy cenią doskonałość w filiżance kawy - od początkujących
+          entuzjastów po doświadczonych, profesjonalnych baristów.
+        </p>
+        <h3 class="subsection-title">Misja</h3>
+        <p>
+          Misją CoffeeDB jest zrewolucjonizowanie sposobu, w jaki ludzie
+          odkrywają i doświadczają kawy poprzez:
+        </p>
+        <div class="highlight-box">
+          <ul>
+            <li>
+              Zapewnienie intuicyjnego, kompleksowego systemu umożliwiającego
+              odkrywanie nowych kaw i miejsc.
+            </li>
+            <li>
+              Budowanie dynamicznej, interaktywnej społeczności dzielącej się
+              wiedzą i kawowymi doświadczeniami.
+            </li>
+            <li>
+              Wspieranie lokalnych palarni i kawiarni poprzez zwiększenie ich
+              widoczności i zasięgu.
+            </li>
+            <li>
+              Promowanie kawy od lokalnych producentów poprzez zwiększenie ich
+              widoczności na rynku.
+            </li>
+          </ul>
+        </div>
+        <p>
+          CoffeeDB to platforma, która łączy świat kawy w jednym cyfrowym
+          ekosystemie, ułatwiając odkrywanie nowych smaków i doświadczeń
+          wszystkim uczestnikom społeczności kawowej - od entuzjastów, przez
+          profesjonalistów, po właścicieli biznesów, tworząc tym samym rewolucję
+          w kulturze picia kawy.
+        </p>
+      </section>
+
+      <section id="problem-rozwiazanie" class="section">
+        <h2 class="section-title">Problem i Rozwiązanie</h2>
+        <h3 class="subsection-title">Identyfikacja Problemu</h3>
+        <p>
+          Mimo rosnącego zainteresowania kawą wysokiej jakości, rynek wciąż
+          boryka się z kilkoma kluczowymi wyzwaniami, które CoffeeDB adresuje:
+        </p>
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th>Problem</th>
+              <th>Wpływ</th>
+              <th>Dotknięci interesariusze</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Rozproszenie informacji</td>
+              <td>Trudność w znalezieniu wiarygodnych danych</td>
+              <td>Miłośnicy kawy, turyści</td>
+            </tr>
+            <tr>
+              <td>Brak zintegrowanych recenzji</td>
+              <td>Niepełny obraz jakości</td>
+              <td>Konsumenci, biznesy</td>
+            </tr>
+            <tr>
+              <td>Trudność lokalizacji miejsc</td>
+              <td>Ograniczona dostępność doświadczeń</td>
+              <td>Entuzjaści kawy, podróżnicy</td>
+            </tr>
+            <tr>
+              <td>Niska widoczność małych palarni</td>
+              <td>Utrudniony rozwój</td>
+              <td>Właściciele palarni</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3 class="subsection-title">Rozwiązanie CoffeeDB</h3>
+        <p>
+          CoffeeDB oferuje kompleksowe rozwiązanie, tworząc jednolitą platformę,
+          która:
+        </p>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h4 class="feature-title">
+              <span class="feature-icon">💡</span>Centralizuje Informacje
+            </h4>
+            <p>
+              Agreguje wszystkie kluczowe dane o kawach, palarniach i
+              kawiarniach w jednym, łatwo dostępnym centrum wiedzy.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h4 class="feature-title">
+              <span class="feature-icon">🌟</span>Umożliwia Recenzowanie
+            </h4>
+            <p>
+              Oferuje system ocen i komentarzy, dający pełny, wielowymiarowy
+              obraz jakości produktów i miejsc.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h4 class="feature-title">
+              <span class="feature-icon">🗺️</span>Wizualizuje Lokalizacje
+            </h4>
+            <p>
+              Udostępnia interaktywną, dynamiczną mapę z filtrowaniem,
+              ułatwiającą znalezienie kawowych perełek w każdej lokalizacji.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h4 class="feature-title">
+              <span class="feature-icon">🚀</span>Promuje Jakość
+            </h4>
+            <p>
+              Wyróżnia najlepsze miejsca i produkty, motywując do podnoszenia
+              standardów w branży.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="funkcjonalnosci" class="section">
+        <h2 class="section-title">Główne Funkcjonalności</h2>
+        <p>
+          CoffeeDB wyróżnia się bogatym zestawem funkcji, które wspólnie tworzą
+          kompleksowe narzędzie dla wszystkich miłośników kawy:
+        </p>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h3 class="subsection-title">Interaktywna Mapa Kawowa</h3>
+            <p>
+              Rewolucyjna mapa to technologiczny przełom w odkrywaniu miejsc
+              związanych z kawą, oferująca precyzyjną lokalizację, filtrowanie i
+              szczegółowe informacje.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3 class="subsection-title">System Recenzji</h3>
+            <p>
+              Dzięki rozbudowanemu formularzowi użytkownicy mogą oceniać kawę
+              według kilku kryteriów (aromat, smak, body, aftertaste), a także
+              przeglądać średnie oceny i historię opinii zapisane w bazie
+              danych.
+            </p>
+          </div>
+          <div class="feature-card">
+            <h3 class="subsection-title">Kompleksowy Katalog Kaw</h3>
+            <p>
+              Rozbudowana baza danych zawiera szczegółowe profile smakowe,
+              informacje o przetwarzaniu, paleniu, pochodzeniu ziaren oraz
+              powiązania z miejscami serwującymi daną kawę.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="odbiorcy" class="section">
+        <h2 class="section-title">Odbiorcy Aplikacji</h2>
+        <p>
+          CoffeeDB została zaprojektowana z myślą o różnorodnych grupach
+          użytkowników, oferując każdej z nich unikalne korzyści:
+        </p>
+        <div class="benefits-list">
+          <div class="benefit-item">
+            <h4 class="benefit-title">
+              <span class="benefit-number">01</span>Miłośnicy Kawy
+            </h4>
+            <p>
+              Entuzjaści poszukujący nowych doznań, którzy pasjonują się kawą i
+              nieustannie eksplorują nowe smaki, metody parzenia i miejsca.
+              CoffeeDB jest dla nich cyfrowym przewodnikiem.
+            </p>
+          </div>
+          <div class="benefit-item">
+            <h4 class="benefit-title">
+              <span class="benefit-number">02</span>Właściciele Biznesów
+              Kawowych
+            </h4>
+            <p>
+              Zarządzający kawiarniami i palarniami, potrzebujący skutecznego
+              narzędzia do promocji. CoffeeDB zwiększa ich widoczność i
+              umożliwia kontakt z klientami.
+            </p>
+          </div>
+          <div class="benefit-item">
+            <h4 class="benefit-title">
+              <span class="benefit-number">03</span>Podróżnicy i Turyści
+            </h4>
+            <p>
+              Osoby odkrywające lokalne smaki, które chcą poznawać kulturę
+              kawową różnych regionów. CoffeeDB pomaga im szybko lokalizować
+              najlepsze miejsca.
+            </p>
+          </div>
+          <div class="benefit-item">
+            <h4 class="benefit-title">
+              <span class="benefit-number">04</span>Profesjonaliści z Branży
+            </h4>
+            <p>
+              Bariści, kupcy i eksperci kawowi, potrzebujący aktualnych
+              informacji o trendach. CoffeeDB stanowi dla nich cenne źródło
+              wiedzy.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="korzysci" class="section">
+        <h2 class="section-title">Korzyści dla Użytkowników</h2>
+        <p>
+          CoffeeDB oferuje szereg wymiernych korzyści, wskazując drogę każdemu
+          uczestnikowi społeczności kawowej
+        </p>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h3 class="subsection-title">Dla Miłośników Kawy</h3>
+            <ul>
+              <li>Odkrywanie: Łatwy dostęp do informacji.</li>
+              <li>Edukacja: Pogłębianie wiedzy.</li>
+              <li>Społeczność: Interakcje z pasjonatami.</li>
+              <li>Recenzje: Możliwość dzielenia się opiniami.</li>
+            </ul>
+          </div>
+          <div class="feature-card">
+            <h3 class="subsection-title">Dla Biznesów Kawowych</h3>
+            <ul>
+              <li>Widoczność: Dotarcie do klientów.</li>
+              <li>Feedback: Konstruktywne opinie.</li>
+              <li>Promocja: Informowanie o swojej ofercie.</li>
+              <li>Budowanie Marki: Tworzenie społeczności.</li>
+            </ul>
+          </div>
+          <div class="feature-card" style="grid-column: span 2">
+            <h3 class="subsection-title">Dla Całej Społeczności Kawowej</h3>
+            <ul>
+              <li>
+                Wspólna baza: każdy może przeglądać i dodawać recenzje kaw,
+                palarni oraz kawiarni.
+              </li>
+              <li>
+                Interaktywna mapa: łatwe wyszukiwanie miejsc związanych z kawą w
+                Polsce i na świecie.
+              </li>
+              <li>
+                Transparentność: dostęp do szczegółowych ocen, opinii i profili
+                produktów oraz miejsc.
+              </li>
+              <li>
+                Wspieranie jakości: możliwość wyróżniania najlepszych kawiarni i
+                palarni na podstawie ocen społeczności.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="przewaga" class="section">
+        <h2 class="section-title">Przewaga Konkurencyjna</h2>
+        <p>
+          CoffeeDB wyróżnia się na tle konkurencji dzięki połączeniu katalogu
+          kaw, palarni i kawiarni z systemem recenzji oraz interaktywną mapą, co
+          pozwala użytkownikom łatwo odkrywać i oceniać miejsca związane z kawą.
+        </p>
+        <h3 class="subsection-title">Kompleksowość Rozwiązania</h3>
+        <p>
+          W przeciwieństwie do innych platform, CoffeeDB integruje wszystkie
+          elementy w jednym, spójnym ekosystemie.
+        </p>
+        <table class="styled-table">
+          <thead>
+            <tr>
+              <th>Funkcjonalność</th>
+              <th>CoffeeDB</th>
+              <th>Inne platformy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Katalog kaw z profilami</td>
+              <td>✅ Pełny</td>
+              <td>⚠️ Ograniczony</td>
+            </tr>
+            <tr>
+              <td>Baza palarni i kawiarni</td>
+              <td>✅ Globalna</td>
+              <td>⚠️ Często lokalna</td>
+            </tr>
+            <tr>
+              <td>System recenzji</td>
+              <td>✅ Wielowymiarowy</td>
+              <td>⚠️ Podstawowy</td>
+            </tr>
+            <tr>
+              <td>Interaktywna mapa</td>
+              <td>✅ Dynamiczna</td>
+              <td>⚠️ Prosta / Brak</td>
+            </tr>
+            <tr>
+              <td>Społeczność</td>
+              <td>✅ Aktywna, Żywa</td>
+              <td>⚠️ Pasywna</td>
+            </tr>
+          </tbody>
+        </table>
+        <h3 class="subsection-title">Społeczność jako Priorytet</h3>
+        <p>
+          CoffeeDB stawia na otwartość i współpracę – każdy użytkownik może
+          dodawać recenzje kaw, kawiarni i palarni, a wszystkie opinie są
+          publicznie dostępne. Dzięki temu społeczność współtworzy bazę wiedzy i
+          pomaga innym w wyborze najlepszych miejsc i produktów.
+        </p>
+      </section>
+
+      <section id="demonstracja" class="section">
+        <h2 class="section-title">Demonstracja Aplikacji</h2>
+        <div class="video-section-grid">
+          <div class="video-container">
+            <iframe
+              width="560"
+              height="315"
+              src="https://www.youtube.com/embed/MtFkPjbEKFM"
+              title="CoffeeDB - wersja PC"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+            <h3 class="video-title-caption">Wersja na Komputer (PC)</h3>
+          </div>
+          <div class="video-container">
+            <iframe
+              width="560"
+              height="315"
+              src="https://www.youtube.com/embed/tTPA7zCDmcg"
+              title="CoffeeDB - wersja mobilna"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+            ></iframe>
+            <h3 class="video-title-caption">Wersja Mobilna</h3>
+          </div>
+        </div>
+      </section>
+
+      <section id="final-cta" class="section">
+        <img src="logo.png" alt="CoffeeDB Logo" class="logo-main" />
+        <h2 class="section-title">CoffeeDB</h2>
+        <p>
+          Nowoczesna aplikacja internetowa dla miłośników kawy – pozwala
+          odkrywać, oceniać i przeglądać kawy speciality, kawiarnie oraz
+          palarnie.
+        </p>
+        <a href="http://srv17.mikr.us:40330/" target="_blank" class="cta-button"
+          >Wypróbuj CoffeeDB Teraz!</a
+        >
+      </section>
+
+      <footer class="footer">
+        <div class="github-top-link" style="margin-top: 24px; margin-bottom: -40px; text-align: center;">
+          <a
+            href="https://github.com/PanPeryskop/CoffeeDB"
+            target="_blank"
+            class="footer-link"
+            ><i class="fab fa-github"></i> Kod źródłowy na GitHub</a
+          >
+        </div>
+      </footer>
+    </div>
+
+    
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const navTrigger = document.getElementById("navTrigger");
+        const mainNav = document.getElementById("mainNav");
+        const navLinks = document.querySelectorAll(".nav-link");
+        const sections = document.querySelectorAll(".section");
+
+        navTrigger.addEventListener("click", () => {
+          mainNav.classList.toggle("active");
+          navTrigger.textContent = mainNav.classList.contains("active")
+            ? "\u2715"
+            : "\u2630";
+        });
+
+        navLinks.forEach((link) => {
+          link.addEventListener("click", () => {
+            mainNav.classList.remove("active");
+            navTrigger.textContent = "\u2630";
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (
+            !mainNav.contains(event.target) &&
+            !navTrigger.contains(event.target) &&
+            mainNav.classList.contains("active")
+          ) {
+            mainNav.classList.remove("active");
+            navTrigger.textContent = "\u2630";
+          }
+        });
+
+        const observerOptions = {
+          root: null,
+          rootMargin: "0px",
+          threshold: 0.2,
+        };
+
+        const observerCallback = (entries, observer) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              navLinks.forEach((link) => {
+                link.classList.toggle(
+                  "active-link",
+                  link.getAttribute("href").substring(1) === entry.target.id
+                );
+              });
+            }
+          });
+        };
+
+        const observer = new IntersectionObserver(
+          observerCallback,
+          observerOptions
+        );
+        sections.forEach((section) => observer.observe(section));
+
+        const canvas = document.getElementById("particle-canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particlesArray = [];
+        const computedStyles = getComputedStyle(document.body);
+        const getNeonColor = (variableName) => {
+          const rgbString = computedStyles
+            .getPropertyValue(variableName)
+            .trim();
+          const [r, g, b] = rgbString.split(",").map(Number);
+          return `rgba(${r}, ${g}, ${b}, 0.7)`;
+        };
+
+        const neonColors = [
+          getNeonColor("--neon-purple-rgb"),
+          getNeonColor("--neon-pink-rgb"),
+          getNeonColor("--neon-blue-rgb"),
+          getNeonColor("--neon-cyan-rgb"),
+        ];
+
+        class Particle {
+          constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.size = Math.random() * 2 + 1;
+            this.speedX = Math.random() * 1 - 0.5;
+            this.speedY = Math.random() * 1 - 0.5;
+            this.color =
+              neonColors[Math.floor(Math.random() * neonColors.length)];
+          }
+          update() {
+            this.x += this.speedX;
+            this.y += this.speedY;
+
+            if (this.size > 0.1) this.size -= 0.01;
+          }
+          draw() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 5;
+            ctx.shadowColor = this.color;
+          }
+        }
+
+        function initParticles() {
+          particlesArray = [];
+          let numberOfParticles = (canvas.width * canvas.height) / 9000;
+          numberOfParticles = Math.min(numberOfParticles, 100);
+          for (let i = 0; i < numberOfParticles; i++) {
+            let x = Math.random() * canvas.width;
+            let y = Math.random() * canvas.height;
+            particlesArray.push(new Particle(x, y));
+          }
+        }
+        initParticles();
+
+        function handleParticles() {
+          for (let i = 0; i < particlesArray.length; i++) {
+            particlesArray[i].update();
+            particlesArray[i].draw();
+            if (particlesArray[i].size <= 0.1) {
+              particlesArray.splice(i, 1);
+              i--;
+              let x = Math.random() * canvas.width;
+              let y = Math.random() * canvas.height;
+              particlesArray.push(new Particle(x, y));
+            }
+          }
+        }
+
+        function animateParticles() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          handleParticles();
+          requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        window.addEventListener("resize", () => {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+          initParticles();
+        });
+
+        const bgMusic = new Audio("ocean-drive.mp3");
+        bgMusic.loop = true;
+        bgMusic.volume = 0.4;
+
+        const audioControls = document.createElement("div");
+        audioControls.innerHTML = `
+        <!-- <div id="audio-control" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; 
+                                      background: rgba(190, 82, 201, 0.2); padding: 10px; 
+                                      border-radius: 50%; cursor: pointer; transition: all 0.3s ease;
+                                      box-shadow: 0 0 10px var(--neon-pink);">
+          <span id="audio-icon" style="color: var(--neon-cyan); font-size: 20px;">🔊</span>
+        </div> -->
+      `;
+        document.body.appendChild(audioControls);
+
+        let musicInitiated = false;
+
+        function playBackgroundMusic() {
+          if (!musicInitiated) {
+            bgMusic
+              .play()
+              .then(() => {
+                musicInitiated = true;
+                console.log("Music playing");
+              })
+              .catch((err) => {
+                console.log("Couldn't autoplay music:", err);
+              });
+          }
+        }
+
+        const userInteractions = ["click", "scroll", "keydown"];
+        userInteractions.forEach((event) => {
+          document.addEventListener(
+            event,
+            function () {
+              playBackgroundMusic();
+            },
+            { once: true }
+          );
+        });
+
+        document
+          .getElementById("audio-control")
+          .addEventListener("click", function () {
+            if (bgMusic.paused) {
+              bgMusic.play();
+              document.getElementById("audio-icon").textContent = "🔊";
+            } else {
+              bgMusic.pause();
+              document.getElementById("audio-icon").textContent = "🔇";
+            }
+          });
+      });
+    </script>
+  </body>
+</html>
